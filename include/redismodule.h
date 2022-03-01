@@ -159,13 +159,13 @@ This flag should not be used directly by the module.
 #define REDISMODULE_NOTIFY_EXPIRED (1 << 8)  /* x */
 #define REDISMODULE_NOTIFY_EVICTED (1 << 9)  /* e */
 #define REDISMODULE_NOTIFY_STREAM (1 << 10)  /* t */
-#define REDISMODULE_NOTIFY_KEY_MISS                                            \
-  (1 << 11) /* m (Note: This one is excluded from REDISMODULE_NOTIFY_ALL on    \
+#define REDISMODULE_NOTIFY_KEY_MISS                                         \
+  (1 << 11) /* m (Note: This one is excluded from REDISMODULE_NOTIFY_ALL on \
                purpose) */
-#define REDISMODULE_NOTIFY_LOADED                                              \
-  (1 << 12) /* module only key space notification, indicate a key loaded       \
+#define REDISMODULE_NOTIFY_LOADED                                        \
+  (1 << 12) /* module only key space notification, indicate a key loaded \
                from rdb */
-#define REDISMODULE_NOTIFY_MODULE                                              \
+#define REDISMODULE_NOTIFY_MODULE \
   (1 << 13) /* d, module key space notification */
 
 /* Next notification flag, must be updated when adding new flags above!
@@ -173,11 +173,11 @@ This flag should not be used directly by the module.
  * Use RedisModule_GetKeyspaceNotificationFlagsAll instead. */
 #define _REDISMODULE_NOTIFY_NEXT (1 << 14)
 
-#define REDISMODULE_NOTIFY_ALL                                                 \
-  (REDISMODULE_NOTIFY_GENERIC | REDISMODULE_NOTIFY_STRING |                    \
-   REDISMODULE_NOTIFY_LIST | REDISMODULE_NOTIFY_SET |                          \
-   REDISMODULE_NOTIFY_HASH | REDISMODULE_NOTIFY_ZSET |                         \
-   REDISMODULE_NOTIFY_EXPIRED | REDISMODULE_NOTIFY_EVICTED |                   \
+#define REDISMODULE_NOTIFY_ALL                               \
+  (REDISMODULE_NOTIFY_GENERIC | REDISMODULE_NOTIFY_STRING |  \
+   REDISMODULE_NOTIFY_LIST | REDISMODULE_NOTIFY_SET |        \
+   REDISMODULE_NOTIFY_HASH | REDISMODULE_NOTIFY_ZSET |       \
+   REDISMODULE_NOTIFY_EXPIRED | REDISMODULE_NOTIFY_EVICTED | \
    REDISMODULE_NOTIFY_STREAM | REDISMODULE_NOTIFY_MODULE) /* A */
 
 /* A special pointer that we can use between the core and the module to signal
@@ -185,7 +185,7 @@ This flag should not be used directly by the module.
 #define REDISMODULE_HASH_DELETE ((RedisModuleString *)(long)1)
 
 /* Error messages. */
-#define REDISMODULE_ERRORMSG_WRONGTYPE                                         \
+#define REDISMODULE_ERRORMSG_WRONGTYPE \
   "WRONGTYPE Operation against a key holding the wrong kind of value"
 
 #define REDISMODULE_POSITIVE_INFINITE (1.0 / 0.0)
@@ -252,7 +252,7 @@ typedef uint64_t RedisModuleTimerID;
 #define REDISMODULE_EVENT_SWAPDB 11
 #define REDISMODULE_EVENT_REPL_BACKUP 12
 #define REDISMODULE_EVENT_FORK_CHILD 13
-#define _REDISMODULE_EVENT_NEXT                                                \
+#define _REDISMODULE_EVENT_NEXT \
   14 /* Next event flag, should be updated if a new event added. */
 
 typedef struct RedisModuleEvent {
@@ -463,7 +463,7 @@ typedef long long mstime_t;
 
 #ifndef REDISMODULE_ATTR_PRINTF
 #ifdef __GNUC__
-#define REDISMODULE_ATTR_PRINTF(idx, cnt)                                      \
+#define REDISMODULE_ATTR_PRINTF(idx, cnt) \
   __attribute__((format(printf, idx, cnt)))
 #else
 #define REDISMODULE_ATTR_PRINTF(idx, cnt)
@@ -563,7 +563,7 @@ typedef struct RedisModuleTypeMethods {
   RedisModuleTypeDefragFunc defrag;
 } RedisModuleTypeMethods;
 
-#define REDISMODULE_GET_API(name)                                              \
+#define REDISMODULE_GET_API(name) \
   RedisModule_GetApi("RedisModule_" #name, ((void **)&RedisModule_##name))
 
 /* Default API declaration prefix (not 'extern' for backwards compatibility) */
@@ -1464,7 +1464,7 @@ static int RedisModule_Init(RedisModuleCtx *ctx, const char *name, int ver,
   return REDISMODULE_OK;
 }
 
-#define RedisModule_Assert(_e)                                                 \
+#define RedisModule_Assert(_e) \
   ((_e) ? (void)0 : (RedisModule__Assert(#_e, __FILE__, __LINE__), exit(1)))
 
 #define RMAPI_FUNC_SUPPORTED(func) (func != NULL)

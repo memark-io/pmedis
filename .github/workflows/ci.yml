@@ -1,0 +1,29 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check codestyle
+        uses: DoozyX/clang-format-lint-action@v0.13
+        with:
+          source: '.'
+          exclude: './third_party ./external'
+          extensions: 'h,c'
+          clangFormatVersion: 9
+          style: google
+
+      - name: Get cmake
+        uses: lukka/get-cmake@v3.19.2
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake ..
+          make -j
+

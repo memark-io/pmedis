@@ -1,10 +1,11 @@
 #define REDISMODULE_EXPERIMENTAL_API
-#include "redismodule.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+
+#include "redismodule.h"
 
 int PmHello_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc) {
