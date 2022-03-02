@@ -41,3 +41,8 @@ extern int HelloKeys_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                                   int argc);
 extern int PmSleep_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 int argc);
+// String commands
+extern int PmGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                              int argc);
+extern int PmSet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                              int argc);
