@@ -54,7 +54,7 @@ int GetInt32Value(uint32_t *var, const char *value) {
 }
 
 KVDKConfigs *LoadAndCreateConfigs(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+                                  int argc) {
   uint64_t pmem_file_size = PMEM_FILE_SIZE, hash_bucket_num = HASH_BUCKET_NUM,
            pmem_segment_blocks = PMEM_SEG_BLOCKS, max_write_threads;
   uint32_t pmem_block_size = PMEM_BLOCK_SIZE,
@@ -95,13 +95,12 @@ KVDKConfigs *LoadAndCreateConfigs(RedisModuleCtx *ctx, RedisModuleString **argv,
 
   KVDKConfigs *kvdk_configs = KVDKCreateConfigs();
   KVDKSetConfigs(kvdk_configs, max_write_threads, pmem_file_size,
-                  populate_pmem_space, pmem_block_size, pmem_segment_blocks,
-                  hash_bucket_size, hash_bucket_num, num_buckets_per_slot);
+                 populate_pmem_space, pmem_block_size, pmem_segment_blocks,
+                 hash_bucket_size, hash_bucket_num, num_buckets_per_slot);
   return kvdk_configs;
 }
 
-int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   config = LoadAndCreateConfigs(ctx, argv, argc);
   if (config == NULL) {
     return REDISMODULE_ERR;

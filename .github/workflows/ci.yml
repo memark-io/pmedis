@@ -13,7 +13,7 @@ jobs:
         uses: DoozyX/clang-format-lint-action@v0.13
         with:
           source: '.'
-          exclude: './third_party ./external'
+          exclude: './third_party ./external ./include'
           extensions: 'h,c'
           clangFormatVersion: 9
           style: google
@@ -23,7 +23,5 @@ jobs:
 
       - name: Build
         run: |
-          mkdir -p build && cd build
-          cmake ..
-          make -j
+          bash build.sh
 
