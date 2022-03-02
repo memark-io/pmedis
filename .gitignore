@@ -36,6 +36,7 @@ cmake-build-*
 *.exe
 *.out
 *.app
+*.rdb
 
 build/
 .cache/

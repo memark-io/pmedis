@@ -1,3 +1,4 @@
-set(PMEDIS_SRC pmedis.c)
+set(PMEDIS_SRC pmedis.c dummy.c kvdkenv.c pmedis.h)
 add_library(pmedis SHARED ${PMEDIS_SRC})
-set_target_properties(pmedis PROPERTIES LINK_LIBRARIES -pthread)
+target_link_directories(pmedis PUBLIC ${PROJECT_SOURCE_DIR}/kvdk/build)
+target_link_libraries(pmedis pthread engine)
