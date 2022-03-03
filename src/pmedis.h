@@ -1,6 +1,8 @@
 #define REDISMODULE_EXPERIMENTAL_API
 #include <ctype.h>
+#include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +23,10 @@ extern const char *pmem_path;
 extern KVDKEngine *engine;
 extern KVDKConfigs *config;
 extern const char *enum_to_str[];
+
+typedef struct ThdPoolTask ThdPoolTask_t;
+typedef struct ThdPool ThdPool_t;
+extern ThdPool_t *thp;
 
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
@@ -46,3 +52,9 @@ extern int PmGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                               int argc);
 extern int PmSet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                               int argc);
+
+// Thread pool
+extern int thp_destroy(ThdPool_t *);
+extern ThdPool_t *thp_create(int, int, int);
+extern int thp_add(ThdPool_t *, void *func, RedisModuleBlockedClient *,
+                   RedisModuleString **, int);

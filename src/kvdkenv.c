@@ -56,7 +56,7 @@ int GetInt32Value(uint32_t *var, const char *value) {
 KVDKConfigs *LoadAndCreateConfigs(RedisModuleCtx *ctx, RedisModuleString **argv,
                                   int argc) {
   uint64_t pmem_file_size = PMEM_FILE_SIZE, hash_bucket_num = HASH_BUCKET_NUM,
-           pmem_segment_blocks = PMEM_SEG_BLOCKS, max_write_threads = 2;
+           pmem_segment_blocks = PMEM_SEG_BLOCKS, max_write_threads = 4;
   uint32_t pmem_block_size = PMEM_BLOCK_SIZE,
            hash_bucket_size = HASH_BUCKET_SIZE,
            num_buckets_per_slot = NUM_BUCKETS_PER_SLOT;
