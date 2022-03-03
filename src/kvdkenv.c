@@ -56,7 +56,7 @@ int GetInt32Value(uint32_t *var, const char *value) {
 KVDKConfigs *LoadAndCreateConfigs(RedisModuleCtx *ctx, RedisModuleString **argv,
                                   int argc) {
   uint64_t pmem_file_size = PMEM_FILE_SIZE, hash_bucket_num = HASH_BUCKET_NUM,
-           pmem_segment_blocks = PMEM_SEG_BLOCKS, max_write_threads;
+           pmem_segment_blocks = PMEM_SEG_BLOCKS, max_write_threads = 2;
   uint32_t pmem_block_size = PMEM_BLOCK_SIZE,
            hash_bucket_size = HASH_BUCKET_SIZE,
            num_buckets_per_slot = NUM_BUCKETS_PER_SLOT;
@@ -97,6 +97,14 @@ KVDKConfigs *LoadAndCreateConfigs(RedisModuleCtx *ctx, RedisModuleString **argv,
   KVDKSetConfigs(kvdk_configs, max_write_threads, pmem_file_size,
                  populate_pmem_space, pmem_block_size, pmem_segment_blocks,
                  hash_bucket_size, hash_bucket_num, num_buckets_per_slot);
+  RedisModule_Log(ctx, "notice",
+                  "max_write_threads: %lu\npmem_file_size: "
+                  "%lu\npopulate_pmem_space: %d\npmem_block_size: "
+                  "%u\npmem_segment_blocks: %lu\nhash_bucket_size: "
+                  "%u\nhash_bucket_num: %lu\nnum_buckets_per_slot: %u",
+                  max_write_threads, pmem_file_size, populate_pmem_space,
+                  pmem_block_size, pmem_segment_blocks, hash_bucket_size,
+                  hash_bucket_num, num_buckets_per_slot);
   return kvdk_configs;
 }
 
@@ -105,12 +113,10 @@ int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (config == NULL) {
     return REDISMODULE_ERR;
   }
+
   if ((pmem_path != NULL && pmem_path[0] == '\0')) {
     return REDISMODULE_ERR;
   }
-
-  // Purge old KVDK instance
-  KVDKRemovePMemContents(pmem_path);
 
   // open engine
   KVDKStatus s = KVDKOpen(pmem_path, config, stdout, &engine);

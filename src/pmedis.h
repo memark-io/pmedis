@@ -9,7 +9,7 @@
 #include "kvdk/engine.h"
 #include "redismodule.h"
 
-#define PMEM_FILE_SIZE 256ULL << 30
+#define PMEM_FILE_SIZE 1 << 30
 #define HASH_BUCKET_NUM 1 << 27
 #define PMEM_SEG_BLOCKS 2 * 1024 * 1024
 #define PMEM_BLOCK_SIZE 64

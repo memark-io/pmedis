@@ -35,13 +35,6 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
       REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
-  if (argc != 1) {
-    RedisModule_Log(ctx, "warning", "Number of args for pmedis must be 1");
-    return REDISMODULE_ERR;
-  }
-
-  const char *s = RedisModule_StringPtrLen(argv[0], NULL);
-  RedisModule_Log(ctx, "notice", "PMem root : %s", s);
   InitKVDK(ctx, argv, argc);
 
   if (RedisModule_CreateCommand(ctx, "pm.hello", PmHello_RedisCommand,
