@@ -1,22 +1,85 @@
+#include <limits.h>
+
 #include "pmedis.h"
-static char* safe_strcat(char *__restrict s1, size_t s1_size, const char *__restrict s2, size_t s2_size) {
-  size_t res_len = 1 + s1_size + s2_size;
-  char* res = (char*)malloc(res_len);
-  memset(res, 0, res_len);
-  memcpy(res, s1, s1_size);
-  memcpy(res+s1_size, s2, s2_size);
-  return res;
+#include "util.h"
+
+// Wait: KVDK Read-modify-write
+
+int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
+             long long incr) {
+  // long long value, oldvalue;
+  /* Get long value */
+  // TODO: KVDKGetLong
+  /* Key exists, check type string */
+  // TODO: require KVDK support input key, output: key-type
+  // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
+  // Wrong Type");
+  /* Check whether it is a number */
+  // TODO: require kvdk DecodeInt64
+  // TODO: if(type != OBJ_INT) return RedisModule_ReplyWithError(ctx,"ERR value
+  // is not an integer or out of range");
+
+  /* Read-modify-write */
+  /*
+  oldvalue = value;
+  if ((incr < 0 && oldvalue < 0 && incr < (LLONG_MIN-oldvalue)) ||
+      (incr > 0 && oldvalue > 0 && incr > (LLONG_MAX-oldvalue))) {
+      return RedisModule_ReplyWithError(ctx, "increment or decrement would
+  overflow");
+  }
+  value += incr;
+  */
+  return 0;
 }
 
+int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  size_t key_len;
+  if (argc != 2) return RedisModule_WrongArity(ctx);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  return incrDecr(ctx, key_str, key_len, 1);
+}
+int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  size_t key_len;
+  if (argc != 2) return RedisModule_WrongArity(ctx);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  return incrDecr(ctx, key_str, key_len, -1);
+}
 
-int pmappendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  size_t key_len, incr_str_len;
+  long long incr;
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
+
+  if (0 == string2ll(incr_str, incr_str_len, &incr))
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+
+  return incrDecr(ctx, key_str, key_len, incr);
+}
+int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  size_t key_len, incr_str_len;
+  long long incr;
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
+
+  if (0 == string2ll(incr_str, incr_str_len, &incr))
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+
+  return incrDecr(ctx, key_str, key_len, -incr);
+}
+
+int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len, append_val_len, ori_val_len;
   char *ori_val_str;
   size_t target_len;
   if (argc != 3) return RedisModule_WrongArity(ctx);
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);  
-  const char *append_val_str = RedisModule_StringPtrLen(argv[2], &append_val_len);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *append_val_str =
+      RedisModule_StringPtrLen(argv[2], &append_val_len);
   char *target_str = NULL;
 
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
@@ -24,20 +87,22 @@ int pmappendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (s != Ok && s != NotFound) {
     /* Something Err in KVDK */
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-  }else if(s == NotFound){
+  } else if (s == NotFound) {
     /* Create the key */
     target_len = append_val_len;
-    target_str = (char *) append_val_str;
-  }else{
+    target_str = (char *)append_val_str;
+  } else {
     /* Key exists, check type */
     // TODO: require KVDK support input key, output: key-type
-    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR Wrong Type");
+    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
+    // Wrong Type");
     /* Append the value */
     target_len = append_val_len + ori_val_len;
-    target_str = safe_strcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
+    target_str =
+        safeStrcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
   }
   s = KVDKSet(engine, key_str, key_len, target_str, target_len);
-  free(ori_val_str); // free memory allocated by KVDKGet
+  free(ori_val_str);  // free memory allocated by KVDKGet
   free(target_str);
 
   if (s != Ok) {
@@ -46,33 +111,31 @@ int pmappendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   return RedisModule_ReplyWithLongLong(ctx, target_len);
 }
 
-int pmstrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
-  size_t key_len,val_len,str_len;
+  size_t key_len, val_len, str_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   char *val_str;
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
   if (s != Ok && s != NotFound) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-  }else if(s == NotFound){
+  } else if (s == NotFound) {
     /* Key not exist*/
     str_len = 0;
-  }else{
+  } else {
     /* Key exists, check type */
     // TODO: require KVDK support input key, output: key-type
-    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR Wrong Type");
+    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
+    // Wrong Type");
     /* Append the value */
     str_len = val_len;
   }
-  return RedisModule_ReplyWithLongLong(ctx, str_len);                 
+  return RedisModule_ReplyWithLongLong(ctx, str_len);
 }
-int pmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
-  size_t key_len;
+  size_t key_len, val_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  size_t val_len;
   char *val_str;
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
   if (s != Ok && s != NotFound) {
@@ -82,8 +145,7 @@ int pmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   return RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
 }
 
-int pmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
+int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);

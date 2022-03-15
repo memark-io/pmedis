@@ -48,14 +48,22 @@ extern int HelloKeys_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 extern int PmSleep_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 int argc);
 // String commands
-extern int pmappendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                              int argc);
-extern int pmstrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                              int argc);
-extern int pmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                              int argc);
-extern int pmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                              int argc);
+extern int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                        int argc);
+extern int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                        int argc);
 
 // Thread pool
 extern int thp_destroy(ThdPool_t *);

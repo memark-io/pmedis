@@ -94,17 +94,29 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "readonly", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   // String
-  if (RedisModule_CreateCommand(ctx, "pm.append", pmappendCommand, "deny-oom", 1,
-                                1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand, "deny-oom", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.strlen", pmstrlenCommand, "readonly", 1,
-                                1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.decr", pmDecrCommand, "deny-oom", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.get", pmgetCommand, "readonly",
+  if (RedisModule_CreateCommand(ctx, "pm.incrby", pmIncrbyCommand, "deny-oom",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.set", pmsetCommand, "write", 1,
-                                1, 1) == REDISMODULE_ERR)                            
+  if (RedisModule_CreateCommand(ctx, "pm.decrby", pmDecrbyCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.append", pmAppendCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.strlen", pmStrlenCommand, "readonly",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.set", pmSetCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
   return REDISMODULE_OK;
