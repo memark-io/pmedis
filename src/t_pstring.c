@@ -54,7 +54,6 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(
         ctx, "ERR value is not an integer or out of range");
   }
-
   /*
   size_t incr_str_len;
   const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
