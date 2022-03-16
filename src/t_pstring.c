@@ -1,10 +1,10 @@
 #include <limits.h>
 
 #include "pmedis.h"
+#include "redismodule.h"
 #include "util.h"
 
 // Wait: KVDK Read-modify-write
-
 int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
              long long incr) {
   // long long value, oldvalue;
@@ -29,7 +29,7 @@ int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   }
   value += incr;
   */
-  return 0;
+  return WAIT_KVDK_FUNC_SUPPORT;
 }
 
 int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -46,16 +46,22 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 }
 
 int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  size_t key_len, incr_str_len;
+  size_t key_len;
   long long incr;
   if (argc != 3) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &incr)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+  }
 
+  /*
+  size_t incr_str_len;
+  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
   if (0 == string2ll(incr_str, incr_str_len, &incr))
     return RedisModule_ReplyWithError(
         ctx, "ERR value is not an integer or out of range");
-
+  */
   return incrDecr(ctx, key_str, key_len, incr);
 }
 int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -70,6 +76,39 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         ctx, "ERR value is not an integer or out of range");
 
   return incrDecr(ctx, key_str, key_len, -incr);
+}
+
+// Wait: KVDK Read-modify-write
+int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc) {
+  size_t key_len;
+  long double incr, ori_value;
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+
+  if (REDISMODULE_ERR == RedisModule_StringToLongDouble(argv[2], &incr)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an float or out of range");
+  }
+
+  /*
+  size_t incr_str_len;
+  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
+  if (!string2ld(incr_str, incr_str_len, &incr))
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an float or out of range");
+  */
+  /* Get String from KVDK */
+  /* Check the original value is float or not */
+  /*
+  if (!string2ld(ori_value_str, ori_value_str_len, &ori_value))
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an float or out of range");
+  */
+  (void)key_str;
+  (void)ori_value;
+
+  return WAIT_KVDK_FUNC_SUPPORT;
 }
 
 int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -103,7 +142,8 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   s = KVDKSet(engine, key_str, key_len, target_str, target_len);
   free(ori_val_str);  // free memory allocated by KVDKGet
-  free(target_str);
+  RedisModule_Free(target_str);
+  // free(target_str);
 
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
@@ -132,6 +172,29 @@ int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, str_len);
 }
+
+int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 2) return RedisModule_WrongArity(ctx);
+  size_t key_len, val_len;
+  int i;
+  RedisModule_ReplyWithArray(ctx, argc - 1);
+
+  for (i = 1; i < argc; ++i) {
+    const char *key_str = RedisModule_StringPtrLen(argv[i], &key_len);
+    char *val_str;
+    KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
+    if (s != Ok && s != NotFound) {
+      return RedisModule_ReplyWithError(ctx, "MGET KVDKGet Return Err");
+    } else if (s == NotFound) {
+      RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
+    } else {
+      // Warrning: memory leak
+      RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
+    }
+  }
+  return RedisModule_ReplyWithError(ctx, "MGET Err");
+}
+
 int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len, val_len;
