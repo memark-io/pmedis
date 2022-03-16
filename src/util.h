@@ -1,0 +1,20 @@
+#ifndef __PMEDIS_UTIL_H
+#define __PMEDIS_UTIL_H
+#include <limits.h>
+#include <stddef.h>
+#include <stdint.h>
+
+/* The maximum number of characters needed to represent a long double
+ * as a string (long double has a huge range).
+ * This should be the size of the buffer given to ld2string */
+#define MAX_LONG_DOUBLE_CHARS 5 * 1024
+
+#define WAIT_KVDK_FUNC_SUPPORT -1
+#define IMPLEMENT_IN_NEXT_PHASE -2
+
+int string2ll(const char *s, size_t slen, long long *value);
+int string2ld(const char *s, size_t slen, long double *dp);
+
+char *safeStrcat(char *__restrict s1, size_t s1_size, const char *__restrict s2,
+                 size_t s2_size);
+#endif
