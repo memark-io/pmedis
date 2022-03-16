@@ -103,6 +103,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.incrby", pmIncrbyCommand, "deny-oom",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.incrbyfloat", pmIncrbyfloatCommand,
+                                "deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.decrby", pmDecrbyCommand, "deny-oom",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
@@ -111,6 +114,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.strlen", pmStrlenCommand, "readonly",
                                 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.mget", pmGetCommand, "readonly", 1, -1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly", 1, 1,
                                 1) == REDISMODULE_ERR)

@@ -56,6 +56,8 @@ extern int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
 extern int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
+extern int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
 extern int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
 extern int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
@@ -64,6 +66,8 @@ extern int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc);
 extern int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc);
+extern int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
 
 // Thread pool
 extern int thp_destroy(ThdPool_t *);
