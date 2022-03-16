@@ -107,7 +107,6 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   */
   (void)key_str;
   (void)ori_value;
-
   return WAIT_KVDK_FUNC_SUPPORT;
 }
 
