@@ -63,6 +63,7 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   */
   return incrDecr(ctx, key_str, key_len, incr);
 }
+
 int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len, incr_str_len;
   long long incr;
