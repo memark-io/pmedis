@@ -37,35 +37,6 @@ err:
   RedisModule_UnblockClient(bc, NULL);
 }
 
-int PmGet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
-  if (argc != 2) return RedisModule_WrongArity(ctx);
-  size_t key_len;
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  size_t val_len;
-  char *val_str;
-  KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-  if (s != Ok && s != NotFound) {
-    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-  }
-  return RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
-}
-
-int PmSet_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                       int argc) {
-  if (argc != 3) return RedisModule_WrongArity(ctx);
-  size_t key_len;
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  size_t val_len;
-  const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
-
-  KVDKStatus s = KVDKSet(engine, key_str, key_len, val_str, val_len);
-  if (s != Ok) {
-    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-  }
-  return RedisModule_ReplyWithLongLong(ctx, 1);
-}
-
 int PmSetMT_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
@@ -116,18 +87,42 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "hello.keys", HelloKeys_RedisCommand, "",
                                 0, 0, 0) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-
-  if (RedisModule_CreateCommand(ctx, "pm.set", PmSet_RedisCommand, "write", 1,
-                                1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.setmt", PmSetMT_RedisCommand, "write",
-                                1, 1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.get", PmGet_RedisCommand, "readonly",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
                                 "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  // String
+  if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand, "deny-oom", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.decr", pmDecrCommand, "deny-oom", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.incrby", pmIncrbyCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.incrbyfloat", pmIncrbyfloatCommand,
+                                "deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.decrby", pmDecrbyCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.append", pmAppendCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.strlen", pmStrlenCommand, "readonly",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.mget", pmGetCommand, "readonly", 1, -1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.set", pmSetCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
   return REDISMODULE_OK;
