@@ -29,7 +29,7 @@ int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   }
   value += incr;
   */
-  return WAIT_KVDK_FUNC_SUPPORT;
+  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
 }
 
 int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -107,7 +107,7 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   */
   (void)key_str;
   (void)ori_value;
-  return WAIT_KVDK_FUNC_SUPPORT;
+  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
 }
 
 int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -172,6 +172,42 @@ int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return RedisModule_ReplyWithLongLong(ctx, str_len);
 }
 
+// Wait KVDK Transaction Support
+int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, int nx){
+  if (0==(argc % 2)) return RedisModule_ReplyWithError(ctx, "wrong number of arguments for MSET");
+  int j;
+  size_t key_len, val_len;
+
+  /* Handle the NX flag. The MSETNX semantic is to return zero and don't
+     * set anything if at least one key already exists. */
+  if (nx) {
+      for (j = 1; j < argc; j += 2) {
+          const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+          char *val_str;
+          KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
+          if (s == Ok) {
+            return RedisModule_ReplyWithLongLong(ctx, 0);
+          }
+      }
+  }
+
+  for (j = 1; j < argc; j += 2) {
+    const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+    const char *val_str = RedisModule_StringPtrLen(argv[j+1], &val_len);
+    KVDKStatus s = KVDKSet(engine, key_str, key_len, val_str, val_len);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+    }
+  }
+  return RedisModule_ReplyWithLongLong(ctx, 1);
+
+}
+
+// Wait KVDK Transaction Support
+int pmMsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return pmMsetGenericCommand(ctx, argv, argc, 0);
+}
+
 int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc < 2) return RedisModule_WrongArity(ctx);
   size_t key_len, val_len;
@@ -191,7 +227,7 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
       RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
     }
   }
-  return RedisModule_ReplyWithError(ctx, "MGET Err");
+  return REDISMODULE_OK;
 }
 
 int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -218,5 +254,5 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }
-  return RedisModule_ReplyWithLongLong(ctx, 1);
+  return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
