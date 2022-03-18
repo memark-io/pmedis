@@ -127,13 +127,21 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.getdel", pmGetdelCommand, "write", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getex", pmGetexCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.set", pmSetCommand, "write", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-
+  if (RedisModule_CreateCommand(ctx, "pm.setex", pmSetexCommand, "deny-oom", 1,
+                                1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.psetex", pmPsetexCommand, "deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   return REDISMODULE_OK;
 }
 

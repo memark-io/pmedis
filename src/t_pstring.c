@@ -264,12 +264,51 @@ int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
 
+/*
+ * PMGETEX <key> [PERSIST][EX seconds][PX milliseconds][EXAT
+ * seconds-timestamp][PXAT milliseconds-timestamp]
+ *
+ * The getexCommand() function implements extended options and variants of the
+ * GET command. Unlike GET command this command is not read-only.
+ *
+ * The default behavior when no options are specified is same as GET and does
+ * not alter any TTL.
+ *
+ * Only one of the below options can be used at a given time.
+ *
+ * 1. PERSIST removes any TTL associated with the key.
+ * 2. EX Set expiry TTL in seconds.
+ * 3. PX Set expiry TTL in milliseconds.
+ * 4. EXAT Same like EX instead of specifying the number of seconds representing
+ * the TTL (time to live), it takes an absolute Unix timestamp
+ * 5. PXAT Same like PX instead of specifying the number of milliseconds
+ * representing the TTL (time to live), it takes an absolute Unix timestamp
+ *
+ * Command would either return the bulk string, error or nil.
+ */
+// Wait for KVDK TTL
+int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+}
+// Wait for KVDK TTL
 int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   KVDKStatus s;
   return pmGetGenericCommand(ctx, key_str, key_len, &s);
+}
+
+// Wait for KVDK TTL
+int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+}
+
+// Wait for KVDK TTL
+int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
 }
 
 int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {

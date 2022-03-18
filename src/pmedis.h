@@ -64,10 +64,16 @@ extern int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
 extern int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc);
+extern int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
 extern int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc);
 extern int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
+extern int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
 extern int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
 extern int pmMsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
