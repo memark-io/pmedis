@@ -324,3 +324,20 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
+
+int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  size_t key_len, val_len, ori_val_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  char *ori_val_str;
+  KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
+  if (s == Ok) {
+    return RedisModule_ReplyWithLongLong(ctx, 0);
+  }
+  const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
+  s = KVDKSet(engine, key_str, key_len, val_str, val_len);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
+  return RedisModule_ReplyWithLongLong(ctx, 1);
+}

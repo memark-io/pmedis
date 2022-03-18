@@ -136,6 +136,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.set", pmSetCommand, "write", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.setnx", pmSetnxCommand, "deny-oom", 1,
+                                1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.setex", pmSetexCommand, "deny-oom", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
