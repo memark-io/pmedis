@@ -173,39 +173,44 @@ int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 }
 
 // Wait KVDK Transaction Support
-int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc, int nx){
-  if (0==(argc % 2)) return RedisModule_ReplyWithError(ctx, "wrong number of arguments for MSET");
+int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc, int nx) {
+  if (0 == (argc % 2))
+    return RedisModule_ReplyWithError(ctx,
+                                      "wrong number of arguments for MSET");
   int j;
   size_t key_len, val_len;
 
   /* Handle the NX flag. The MSETNX semantic is to return zero and don't
-     * set anything if at least one key already exists. */
+   * set anything if at least one key already exists. */
   if (nx) {
-      for (j = 1; j < argc; j += 2) {
-          const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
-          char *val_str;
-          KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-          if (s == Ok) {
-            return RedisModule_ReplyWithLongLong(ctx, 0);
-          }
+    for (j = 1; j < argc; j += 2) {
+      const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+      char *val_str;
+      KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
+      if (s == Ok) {
+        return RedisModule_ReplyWithLongLong(ctx, 0);
       }
+    }
   }
 
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
-    const char *val_str = RedisModule_StringPtrLen(argv[j+1], &val_len);
+    const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
     KVDKStatus s = KVDKSet(engine, key_str, key_len, val_str, val_len);
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
     }
   }
   return RedisModule_ReplyWithLongLong(ctx, 1);
-
 }
 
-// Wait KVDK Transaction Support
 int pmMsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return pmMsetGenericCommand(ctx, argv, argc, 0);
+}
+
+int pmMsetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return pmMsetGenericCommand(ctx, argv, argc, 1);
 }
 
 int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -230,17 +235,41 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
 
-int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  if (argc != 2) return RedisModule_WrongArity(ctx);
-  size_t key_len, val_len;
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
+                        size_t key_len, KVDKStatus *s) {
+  size_t val_len;
   char *val_str;
-  KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-  if (s != Ok && s != NotFound) {
-    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  *s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
+  if (*s != Ok && *s != NotFound) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[*s]);
+  } else if (NotFound == *s) {
+    return RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
   }
   // Warrning: memory leak
   return RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
+}
+
+int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 2) return RedisModule_WrongArity(ctx);
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKStatus sGet, sDel;
+  pmGetGenericCommand(ctx, key_str, key_len, &sGet);
+  if (Ok == sGet) {
+    sDel = KVDKDelete(engine, key_str, key_len);
+    if (sDel != Ok) {
+      return RedisModule_ReplyWithError(ctx, enum_to_str[sDel]);
+    }
+  }
+  return REDISMODULE_OK;
+}
+
+int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 2) return RedisModule_WrongArity(ctx);
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKStatus s;
+  return pmGetGenericCommand(ctx, key_str, key_len, &s);
 }
 
 int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
