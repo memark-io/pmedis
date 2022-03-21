@@ -228,8 +228,8 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     } else if (s == NotFound) {
       RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
     } else {
-      // Warrning: memory leak
       RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
+      free(val_str);
     }
   }
   return REDISMODULE_OK;
@@ -245,8 +245,9 @@ int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
   } else if (NotFound == *s) {
     return RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
   }
-  // Warrning: memory leak
-  return RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
+  RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
+  free(val_str);
+  return REDISMODULE_OK;
 }
 
 int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
