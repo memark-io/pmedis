@@ -93,57 +93,133 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
                                 "readonly", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  // String
-  if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand, "deny-oom", 1, 1,
+  // String Commands
+  if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand,
+                                "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.decr", pmDecrCommand, "deny-oom", 1, 1,
+  if (RedisModule_CreateCommand(ctx, "pm.decr", pmDecrCommand,
+                                "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.incrby", pmIncrbyCommand, "deny-oom",
-                                1, 1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.incrby", pmIncrbyCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.incrbyfloat", pmIncrbyfloatCommand,
-                                "deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.decrby", pmDecrbyCommand, "deny-oom",
-                                1, 1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.decrby", pmDecrbyCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.append", pmAppendCommand, "deny-oom",
-                                1, 1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.append", pmAppendCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.strlen", pmStrlenCommand, "readonly",
-                                1, 1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.strlen", pmStrlenCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.mget", pmMgetCommand, "readonly", 1,
-                                -1, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.mget", pmMgetCommand, "readonly fast",
+                                1, -1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.mset", pmMsetCommand, "deny-oom", 1,
-                                -1, 2) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.msetnx", pmMsetnxCommand, "deny-oom",
+  if (RedisModule_CreateCommand(ctx, "pm.mset", pmMsetCommand, "write deny-oom",
                                 1, -1, 2) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.getdel", pmGetdelCommand, "write", 1,
+  if (RedisModule_CreateCommand(ctx, "pm.msetnx", pmMsetnxCommand,
+                                "write deny-oom", 1, -1, 2) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getdel", pmGetdelCommand, "write fast",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getex", pmGetexCommand, "write fast",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly fast", 1,
                                 1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.getex", pmGetexCommand, "write", 1, 1,
-                                1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.get", pmGetCommand, "readonly", 1, 1,
-                                1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.set", pmSetCommand, "write", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.setnx", pmSetnxCommand, "deny-oom", 1,
+  if (RedisModule_CreateCommand(ctx, "pm.setnx", pmSetnxCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.setex", pmSetexCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.psetex", pmPsetexCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  // List Commands
+  if (RedisModule_CreateCommand(ctx, "pm.rpush", pmRpushCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lpush", pmLpushCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.rpushx", pmRpushxCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lpushx", pmLpushxCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.linsert", pmLinsertCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.rpop", pmRpopCommand, "write fast", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.setex", pmSetexCommand, "deny-oom", 1,
+  if (RedisModule_CreateCommand(ctx, "pm.lpop", pmLpopCommand, "write fast", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.psetex", pmPsetexCommand, "deny-oom",
+  if (RedisModule_CreateCommand(ctx, "pm.brpop", pmBrpopCommand,
+                                "write deny-script blocking", 1, -2,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.brpoplpush", pmBrpoplpushCommand,
+                                "write deny-oom deny-script blocking", 1, 2,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.blmove", pmBlmoveCommand,
+                                "write deny-oom deny-script blocking", 1, 2,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.blpop", pmBlpopCommand,
+                                "write deny-script blocking", 1, -2,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.llen", pmLlenCommand, "readonly fast",
                                 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lindex", pmLindexCommand, "readonly",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lset", pmLsetCommand, "write deny-oom",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lrange", pmLrangeCommand, "readonly",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.ltrim", pmLtrimCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lpos", pmLposCommand, "readonly", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lrem", pmLremCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.rpoplpush", pmRpoplpushCommand,
+                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
+                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   return REDISMODULE_OK;
 }
