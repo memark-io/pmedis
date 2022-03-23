@@ -221,6 +221,62 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
                                 "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  // Hash Commands
+  if (RedisModule_CreateCommand(ctx, "pm.hset", pmHsetCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hsetnx", pmHsetnxCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hget", pmHgetCommand, "readonly fast",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hmset", pmHmsetCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hmget", pmHmgetCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hincrby", pmHincrbyCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hincrbyfloat", pmHincrbyfloatCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hdel", pmHdelCommand, "write fast", 1,
+                                1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hlen", pmHlenCommand, "readonly fast",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hstrlen", pmHstrlenCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hkeys", pmHkeysCommand, "readonly", 1,
+                                1,
+                                1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hvals", pmHvalsCommand, "readonly", 1,
+                                1,
+                                1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hgetall", pmHgetallCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hexists", pmHexistsCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hrandfield", pmHrandfieldCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.hscan", pmHscanCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   return REDISMODULE_OK;
 }
 

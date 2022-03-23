@@ -47,7 +47,6 @@ int pmLindexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 int pmLsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
-
 int pmLrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
