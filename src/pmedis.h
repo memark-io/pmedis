@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
 
+#include "util.h"
 #include "kvdk/engine.h"
 #include "redismodule.h"
 

@@ -1,8 +1,4 @@
-#include <limits.h>
-
 #include "pmedis.h"
-#include "redismodule.h"
-#include "util.h"
 
 // Wait: KVDK Read-modify-write
 int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,

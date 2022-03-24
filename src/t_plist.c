@@ -1,8 +1,4 @@
-#include <limits.h>
-
 #include "pmedis.h"
-#include "redismodule.h"
-#include "util.h"
 
 int pmRpushCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
