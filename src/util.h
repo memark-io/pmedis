@@ -9,8 +9,10 @@
  * This should be the size of the buffer given to ld2string */
 #define MAX_LONG_DOUBLE_CHARS 5 * 1024
 
-#define WAIT_KVDK_FUNC_SUPPORT -1
-#define IMPLEMENT_IN_NEXT_PHASE -2
+#define MSG_WAIT_KVDK_FUNC_SUPPORT \
+  "Func not support at this moment, wait for kvdk support!"
+#define MSG_IMPLEMENT_IN_NEXT_PHASE \
+  "Func not support at this moment, will implement in next phase"
 
 int string2ll(const char *s, size_t slen, long long *value);
 int string2ld(const char *s, size_t slen, long double *dp);
