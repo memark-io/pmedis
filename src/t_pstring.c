@@ -115,7 +115,7 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *append_val_str =
       RedisModule_StringPtrLen(argv[2], &append_val_len);
   char *target_str = NULL;
-  
+
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
 
   if (s != Ok && s != NotFound) {
@@ -135,7 +135,7 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     target_str =
         safeStrcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
   }
-  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   s = KVDKSet(engine, key_str, key_len, target_str, target_len, write_option);
   free(ori_val_str);  // free memory allocated by KVDKGet
   RedisModule_Free(target_str);
@@ -183,14 +183,14 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
    * set anything if at least one key already exists. */
   if (nx) {
     for (j = 1; j < argc; j += 2) {
-      const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len); 
+      const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
       s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
       if (s == Ok) {
         return RedisModule_ReplyWithLongLong(ctx, 0);
       }
     }
   }
-  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
     const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
@@ -315,8 +315,9 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   size_t val_len;
   const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
-  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKStatus s =
+      KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }
@@ -333,7 +334,7 @@ int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithLongLong(ctx, 0);
   }
   const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
-  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   s = KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);

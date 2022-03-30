@@ -89,10 +89,11 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "hello.keys", HelloKeys_RedisCommand, "",
                                 0, 0, 0) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  //if (RedisModule_CreateCommand(ctx, "pm.setmt", PmSetMT_RedisCommand, "write",
+  // if (RedisModule_CreateCommand(ctx, "pm.setmt", PmSetMT_RedisCommand,
+  // "write",
   //                              1, 1, 1) == REDISMODULE_ERR)
   //  return REDISMODULE_ERR;
-  //if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
+  // if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
   //                              "readonly", 1, 1, 1) == REDISMODULE_ERR)
   //  return REDISMODULE_ERR;
   // String Commands

@@ -3,9 +3,10 @@
 // Hash Commands
 int pmHsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if ((argc % 2) == 1) {
-    return RedisModule_ReplyWithError(ctx,"wrong number of arguments for pm.hset command");
+    return RedisModule_ReplyWithError(
+        ctx, "wrong number of arguments for pm.hset command");
   }
-  
+
   return REDISMODULE_OK;
 }
 int pmHsetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
