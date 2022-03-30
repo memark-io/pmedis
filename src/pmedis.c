@@ -1,5 +1,6 @@
 #include "pmedis.h"
 
+/*
 void PmSet_Task(RedisModuleBlockedClient *bc, RedisModuleString **argv,
                 int argc) {
   RedisModuleCtx *ctx = RedisModule_GetThreadSafeContext(bc);
@@ -56,6 +57,7 @@ int PmGetMT_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   thp_add(thp, (void *)&PmGet_Task, bc, argv, argc);
   return REDISMODULE_OK;
 }
+*/
 
 int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                        int argc) {
@@ -87,12 +89,12 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "hello.keys", HelloKeys_RedisCommand, "",
                                 0, 0, 0) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.setmt", PmSetMT_RedisCommand, "write",
-                                1, 1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
-                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
+  //if (RedisModule_CreateCommand(ctx, "pm.setmt", PmSetMT_RedisCommand, "write",
+  //                              1, 1, 1) == REDISMODULE_ERR)
+  //  return REDISMODULE_ERR;
+  //if (RedisModule_CreateCommand(ctx, "pm.getmt", PmGetMT_RedisCommand,
+  //                              "readonly", 1, 1, 1) == REDISMODULE_ERR)
+  //  return REDISMODULE_ERR;
   // String Commands
   if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand,
                                 "write deny-oom fast", 1, 1,
