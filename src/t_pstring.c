@@ -1,5 +1,17 @@
 #include "pmedis.h"
 
+void modify_integer(const char* old_val, size_t old_val_len, char* new_val,
+                 size_t* new_val_len){
+  /*
+  oldvalue = value;
+  if ((incr < 0 && oldvalue < 0 && incr < (LLONG_MIN-oldvalue)) ||
+      (incr > 0 && oldvalue > 0 && incr > (LLONG_MAX-oldvalue))) {
+      return RedisModule_ReplyWithError(ctx, "increment or decrement would
+  overflow");
+  }
+  value += incr;*/
+}
+
 // Wait: KVDK Read-modify-write
 int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
              long long incr) {
@@ -16,15 +28,11 @@ int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   // is not an integer or out of range");
 
   /* Read-modify-write */
-  /*
-  oldvalue = value;
-  if ((incr < 0 && oldvalue < 0 && incr < (LLONG_MIN-oldvalue)) ||
-      (incr > 0 && oldvalue > 0 && incr > (LLONG_MAX-oldvalue))) {
-      return RedisModule_ReplyWithError(ctx, "increment or decrement would
-  overflow");
-  }
-  value += incr;
-  */
+  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
+  //KVDKStatus s = KVDKModify(engine, key_str, key_len, after_v, &after_len,
+  //                          modify_integer, write_option);
+
+  
   return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
 }
 
@@ -190,6 +198,7 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       }
     }
   }
+  /*
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
@@ -199,6 +208,18 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
     }
   }
+  */
+  KVDKWriteBatch* kvdk_wb = KVDKWriteBatchCreate();
+  for (j = 1; j < argc; j += 2) {
+    const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+    const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
+    KVDKWriteBatchPut(kvdk_wb, key_str, strlen(key_str), val_str, strlen(val_str));
+  }
+  s = KVDKWrite(engine, kvdk_wb);
+  if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
+  KVDKWriteBatchDestory(kvdk_wb);
   return RedisModule_ReplyWithLongLong(ctx, 1);
 }
 
