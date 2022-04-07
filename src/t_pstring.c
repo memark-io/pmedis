@@ -1,15 +1,41 @@
 #include "pmedis.h"
+/*
+  if the old value can not convert to a long long number,
+      new_val_len to 0, new_val indicates error message.
+*/
+void modifyll(const char *old_val, size_t old_val_len, char **new_val,
+              size_t *new_val_len, void *n_pointer) {
+  assert(n_pointer);
+  assert(old_val_len == sizeof(long long));
 
-void modify_integer(const char* old_val, size_t old_val_len, char* new_val,
-                 size_t* new_val_len){
-  /*
-  oldvalue = value;
-  if ((incr < 0 && oldvalue < 0 && incr < (LLONG_MIN-oldvalue)) ||
-      (incr > 0 && oldvalue > 0 && incr > (LLONG_MAX-oldvalue))) {
-      return RedisModule_ReplyWithError(ctx, "increment or decrement would
-  overflow");
+  /* Check whether it is a number */
+  long long l_old_val, l_new_val;
+  if (0 == string2ll(old_val, old_val_len, &l_old_val)) {
+    //*new_val_len=0;
+    //*new_val = (char*)malloc(11);
+    // char msg[11]="wrong type";
+    // memset(*new_val, 0, 11);
+    // memcpy(*new_val, msg, 11);
+    return;
   }
-  value += incr;*/
+
+  long long incr = *((long long *)n_pointer);
+  if ((incr < 0 && l_old_val < 0 && incr < (LLONG_MIN - l_old_val)) ||
+      (incr > 0 && l_old_val > 0 && incr > (LLONG_MAX - l_old_val))) {
+    /* updated value will overflow */
+    //*new_val_len=0;
+    //*new_val = (char*)malloc(38);
+    // char msg[38]="increment or decrement would overflow";
+    // memset(*new_val, 0, 38);
+    // memcpy(*new_val, msg, 38);
+    return;
+  }
+  l_new_val = l_old_val + incr;
+
+  // set value
+  *new_val = (char *)malloc(sizeof(long long));
+  *new_val_len = sizeof(long long);
+  memcpy(*new_val, &l_new_val, sizeof(long long));
 }
 
 // Wait: KVDK Read-modify-write
@@ -22,17 +48,21 @@ int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   // TODO: require KVDK support input key, output: key-type
   // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
   // Wrong Type");
-  /* Check whether it is a number */
-  // TODO: require kvdk DecodeInt64
-  // TODO: if(type != OBJ_INT) return RedisModule_ReplyWithError(ctx,"ERR value
-  // is not an integer or out of range");
 
   /* Read-modify-write */
-  KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
-  //KVDKStatus s = KVDKModify(engine, key_str, key_len, after_v, &after_len,
-  //                          modify_integer, write_option);
-
-  
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  char *new_val;
+  size_t new_val_len;
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
+                            modifyll, &incr, write_option);
+  if (NotFound == s) {
+    // if key not exist, first set init value to zero.
+    long long init_num = 0;
+    s = KVDKSet(engine, key_str, key_len, (char *)&init_num, sizeof(long long),
+                write_option);
+    s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len, modifyll,
+                   &incr, write_option);
+  }
   return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
 }
 
@@ -209,15 +239,16 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     }
   }
   */
-  KVDKWriteBatch* kvdk_wb = KVDKWriteBatchCreate();
+  KVDKWriteBatch *kvdk_wb = KVDKWriteBatchCreate();
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
     const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
-    KVDKWriteBatchPut(kvdk_wb, key_str, strlen(key_str), val_str, strlen(val_str));
+    KVDKWriteBatchPut(kvdk_wb, key_str, strlen(key_str), val_str,
+                      strlen(val_str));
   }
   s = KVDKWrite(engine, kvdk_wb);
   if (s != Ok) {
-      return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }
   KVDKWriteBatchDestory(kvdk_wb);
   return RedisModule_ReplyWithLongLong(ctx, 1);
