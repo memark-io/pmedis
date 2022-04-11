@@ -1,4 +1,5 @@
 #define REDISMODULE_EXPERIMENTAL_API
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
