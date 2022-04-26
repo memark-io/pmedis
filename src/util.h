@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 
 /* The maximum number of characters needed to represent a long double
  * as a string (long double has a huge range).

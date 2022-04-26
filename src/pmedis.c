@@ -66,15 +66,16 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
     return REDISMODULE_ERR;
 
   InitKVDK(ctx, argv, argc);
+  srand(time(NULL));
 
-  thp = thp_create(4, 32, 100);
+  thp = thp_create(8, 8, 100);
   if (thp == NULL) {
     RedisModule_Log(ctx, "warning", "Threadpool creation failed");
     return REDISMODULE_ERR;
   }
   RedisModule_Log(
       ctx, "notice",
-      "Threadpool created, threadMin: %d, threadMax: %d, taskMax: %d", 4, 32,
+      "Threadpool created, threadMin: %d, threadMax: %d, taskMax: %d", 8, 8,
       100);
 
   if (RedisModule_CreateCommand(ctx, "pm.hello", PmHello_RedisCommand,
@@ -97,6 +98,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   //                              "readonly", 1, 1, 1) == REDISMODULE_ERR)
   //  return REDISMODULE_ERR;
   // String Commands
+  RedisModule_Log(ctx, "notice", "dummy cmd created");
   if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
@@ -155,6 +157,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.psetex", pmPsetexCommand,
                                 "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  RedisModule_Log(ctx, "notice", "string cmd created");
   // List Commands
   if (RedisModule_CreateCommand(ctx, "pm.rpush", pmRpushCommand,
                                 "write deny-oom fast", 1, 1,
@@ -172,31 +175,31 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.linsert", pmLinsertCommand,
-                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.linsert", pmLinsertCommand,
+//                                 "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.rpop", pmRpopCommand, "write fast", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.lpop", pmLpopCommand, "write fast", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.brpop", pmBrpopCommand,
-                                "write deny-script blocking", 1, -2,
-                                1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.brpoplpush", pmBrpoplpushCommand,
-                                "write deny-oom deny-script blocking", 1, 2,
-                                1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.blmove", pmBlmoveCommand,
-                                "write deny-oom deny-script blocking", 1, 2,
-                                1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.blpop", pmBlpopCommand,
-                                "write deny-script blocking", 1, -2,
-                                1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.brpop", pmBrpopCommand,
+//                                 "write deny-script blocking", 1, -2,
+//                                 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.brpoplpush", pmBrpoplpushCommand,
+//                                 "write deny-oom deny-script blocking", 1, 2,
+//                                 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.blmove", pmBlmoveCommand,
+//                                 "write deny-oom deny-script blocking", 1, 2,
+//                                 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.blpop", pmBlpopCommand,
+//                                 "write deny-script blocking", 1, -2,
+//                                 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.llen", pmLlenCommand, "readonly fast",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
@@ -218,12 +221,13 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.lrem", pmLremCommand, "write", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.rpoplpush", pmRpoplpushCommand,
-                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
-                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
-    return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.rpoplpush", pmRpoplpushCommand,
+//                                 "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
+//   if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
+//                                 "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
+//     return REDISMODULE_ERR;
+  RedisModule_Log(ctx, "notice", "list cmd created");
   // Hash Commands
   if (RedisModule_CreateCommand(ctx, "pm.hset", pmHsetCommand,
                                 "write deny-oom fast", 1, 1,
@@ -280,6 +284,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.hscan", pmHscanCommand,
                                 "readonly random", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  RedisModule_Log(ctx, "notice", "hash cmd created");
   return REDISMODULE_OK;
 }
 

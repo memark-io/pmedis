@@ -71,7 +71,7 @@ int thp_destroy(ThdPool_t *pool) {
 
   pool->shutdown = 1;
 
-  pthread_join(pool->tidMtner, NULL);
+//   pthread_join(pool->tidMtner, NULL);
 
   for (i = 0; i < pool->nLiveThd; i++) {
     pthread_cond_broadcast(&(pool->cndNotEmpty));
@@ -232,7 +232,7 @@ ThdPool_t *thp_create(int nMinThd, int nMaxThd, int nMaxTask) {
       pthread_create(&(pool->tidWorkers[i]), NULL, worker_thd, (void *)pool);
       // thread pool->tidWorkers[i] started
     }
-    pthread_create(&(pool->tidMtner), NULL, maintainer_thd, (void *)pool);
+    // pthread_create(&(pool->tidMtner), NULL, maintainer_thd, (void *)pool);
     // maintainer_thd thread started
 
   } while (0);
