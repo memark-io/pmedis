@@ -37,6 +37,11 @@ typedef struct {
   size_t ret;
 } HSetArgs;
 
+typedef struct {
+  int64_t incr_by;
+  int64_t result;
+} IncNArgs;
+
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
 extern int PmHello_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,

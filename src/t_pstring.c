@@ -38,80 +38,103 @@ void modifyll(const char *old_val, size_t old_val_len, char **new_val,
   memcpy(*new_val, &l_new_val, sizeof(long long));
 }
 
-// Wait: KVDK Read-modify-write
-int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
-             long long incr) {
-  // long long value, oldvalue;
-  /* Get long value */
-  // TODO: KVDKGetLong
-  /* Key exists, check type string */
-  // TODO: require KVDK support input key, output: key-type
-  // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
-  // Wrong Type");
-
-  /* Read-modify-write */
-  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  char *new_val;
-  size_t new_val_len;
-  KVDKStatus s;
-  //   s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
-  //                             modifyll, &incr, write_option);
-  if (NotFound == s) {
-    // if key not exist, first set init value to zero.
-    long long init_num = 0;
-    s = KVDKSet(engine, key_str, key_len, (char *)&init_num, sizeof(long long),
-                write_option);
-    // s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
-    // modifyll,
-    //                &incr, write_option);
+int IncN(const char *old_val, size_t old_val_len, char **new_val,
+         size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  IncNArgs *args = (IncNArgs *)args_pointer;
+  *new_val = (char *)malloc(sizeof(int64_t));
+  if (*new_val == NULL) {
+    return KVDK_MODIFY_ABORT;
   }
-  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+
+  *new_val_len = sizeof(int64_t);
+  int64_t old_num;
+  if (old_val == NULL) {
+    old_num = 0;
+  } else {
+    if (old_val_len != sizeof(int64_t)) {
+      return KVDK_MODIFY_ABORT;
+    }
+    // assert(old_val_len == sizeof(int64_t));
+    memcpy(&old_num, old_val, sizeof(int64_t));
+  }
+  args->result = old_num + args->incr_by;
+  memcpy(*new_val, &args->result, sizeof(int64_t));
+  return KVDK_MODIFY_WRITE;
+}
+
+KVDKStatus incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
+                    IncNArgs *args) {
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKStatus s =
+      KVDKModify(engine, key_str, key_len, IncN, args, free, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  return s;
 }
 
 int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   if (argc != 2) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  return incrDecr(ctx, key_str, key_len, 1);
+  IncNArgs args;
+  args.incr_by = 1;
+  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  if (s == Abort)
+    return RedisModule_ReplyWithError(
+        ctx, "value is not an integer or out of range");
+  else
+    return RedisModule_ReplyWithLongLong(ctx, args.result);
 }
 int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   if (argc != 2) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  return incrDecr(ctx, key_str, key_len, -1);
+  IncNArgs args;
+  args.incr_by = -1;
+  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  if (s == Abort)
+    return RedisModule_ReplyWithError(
+        ctx, "value is not an integer or out of range");
+  else
+    return RedisModule_ReplyWithLongLong(ctx, args.result);
 }
 
 int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len;
   long long incr;
-  if (argc != 3) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &incr)) {
     return RedisModule_ReplyWithError(
         ctx, "ERR value is not an integer or out of range");
   }
-  /*
-  size_t incr_str_len;
-  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
-  if (0 == string2ll(incr_str, incr_str_len, &incr))
+  IncNArgs args;
+  args.incr_by = incr;
+  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  if (s == Abort)
     return RedisModule_ReplyWithError(
-        ctx, "ERR value is not an integer or out of range");
-  */
-  return incrDecr(ctx, key_str, key_len, incr);
+        ctx, "value is not an integer or out of range");
+  else
+    return RedisModule_ReplyWithLongLong(ctx, args.result);
 }
 
 int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  size_t key_len, incr_str_len;
-  long long incr;
   if (argc != 3) return RedisModule_WrongArity(ctx);
+  size_t key_len;
+  long long decr;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
-
-  if (0 == string2ll(incr_str, incr_str_len, &incr))
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &decr)) {
     return RedisModule_ReplyWithError(
         ctx, "ERR value is not an integer or out of range");
-
-  return incrDecr(ctx, key_str, key_len, -incr);
+  }
+  IncNArgs args;
+  args.incr_by = -decr;
+  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  if (s == Abort)
+    return RedisModule_ReplyWithError(
+        ctx, "value is not an integer or out of range");
+  else
+    return RedisModule_ReplyWithLongLong(ctx, args.result);
 }
 
 // Wait: KVDK Read-modify-write
