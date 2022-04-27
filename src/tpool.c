@@ -71,7 +71,7 @@ int thp_destroy(ThdPool_t *pool) {
 
   pool->shutdown = 1;
 
-//   pthread_join(pool->tidMtner, NULL);
+  //   pthread_join(pool->tidMtner, NULL);
 
   for (i = 0; i < pool->nLiveThd; i++) {
     pthread_cond_broadcast(&(pool->cndNotEmpty));

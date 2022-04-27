@@ -54,14 +54,15 @@ int incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   char *new_val;
   size_t new_val_len;
   KVDKStatus s;
-//   s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
-//                             modifyll, &incr, write_option);
+  //   s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
+  //                             modifyll, &incr, write_option);
   if (NotFound == s) {
     // if key not exist, first set init value to zero.
     long long init_num = 0;
     s = KVDKSet(engine, key_str, key_len, (char *)&init_num, sizeof(long long),
                 write_option);
-    // s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len, modifyll,
+    // s = KVDKModify(engine, key_str, key_len, &new_val, &new_val_len,
+    // modifyll,
     //                &incr, write_option);
   }
   return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);

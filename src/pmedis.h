@@ -31,6 +31,12 @@ typedef struct ThdPoolTask ThdPoolTask_t;
 typedef struct ThdPool ThdPool_t;
 extern ThdPool_t *thp;
 
+typedef struct {
+  char const *data;
+  size_t len;
+  size_t ret;
+} HSetArgs;
+
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
 extern int PmHello_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
@@ -162,6 +168,18 @@ extern int pmHrandfieldCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 extern int pmHscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc);
 
+// Set Commands
+extern int pmSaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmSpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+// ZSet Commands
+extern int pmZaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmZpopminCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                            int argc);
+extern int pmZpopmaxCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                            int argc);
 // Thread pool
 extern int thp_destroy(ThdPool_t *);
 extern ThdPool_t *thp_create(int, int, int);
