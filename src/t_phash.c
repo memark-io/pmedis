@@ -33,7 +33,7 @@ int pmHsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if ((argc % 2) == 1) {
     return RedisModule_WrongArity(ctx);
   }
-  size_t i, key_len, created = 0, field_len, val_len = 0;
+  size_t i, key_len, created = 0, field_len, val_len;
   KVDKStatus s;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   for (i = 2; i < argc; i += 2) {

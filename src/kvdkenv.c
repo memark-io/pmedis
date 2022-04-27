@@ -4,6 +4,7 @@ const char *pmem_path = NULL;
 KVDKEngine *engine = NULL;
 KVDKConfigs *config = NULL;
 const char *enum_to_str[] = {FOREACH_ENUM(GENERATE_STRING)};
+const char *comp_name = "score_comp";
 
 int GetInt64Value(uint64_t *var, const char *value) {
   if (strstr(value, "<<")) {
@@ -123,6 +124,6 @@ int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (s != Ok) {
     return REDISMODULE_ERR;
   }
-
+  KVDKRegisterCompFunc(engine, comp_name, strlen(comp_name), ScoreCmp);
   return REDISMODULE_OK;
 }

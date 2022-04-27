@@ -15,9 +15,21 @@
 #define MSG_IMPLEMENT_IN_NEXT_PHASE \
   "Func not support at this moment, will implement in next phase"
 
-int string2ll(const char *s, size_t slen, long long *value);
-int string2ld(const char *s, size_t slen, long double *dp);
+int string2ll(const char* s, size_t slen, long long* value);
+int string2ld(const char* s, size_t slen, long double* dp);
 
-char *safeStrcat(char *__restrict s1, size_t s1_size, const char *__restrict s2,
+char* safeStrcat(char* __restrict s1, size_t s1_size, const char* __restrict s2,
                  size_t s2_size);
+
+extern const char* comp_name;
+int StrCompare(const char* a, size_t a_len, const char* b, size_t b_len);
+int ScoreCmp(const char* score_key_a, size_t a_len, const char* score_key_b,
+             size_t b_len);
+void EncodeScoreKey(int64_t score, const char* member, size_t member_len,
+                    char** score_key, size_t* score_key_len);
+void EncodeStringKey(const char* collection, size_t collection_len,
+                     const char* member, size_t member_len, char** string_key,
+                     size_t* string_key_len);
+void DecodeScoreKey(char* score_key, size_t score_key_len, char** member,
+                    size_t* member_len, int64_t* score);
 #endif
