@@ -272,11 +272,11 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                       strlen(val_str));
   }
   s = KVDKWrite(engine, kvdk_wb);
+  KVDKWriteBatchDestory(kvdk_wb);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }
-  KVDKWriteBatchDestory(kvdk_wb);
-  return RedisModule_ReplyWithLongLong(ctx, 1);
+  return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
 
 int pmMsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -317,7 +317,7 @@ int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
   if (*s != Ok && *s != NotFound) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[*s]);
   } else if (NotFound == *s) {
-    return RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
+    return RedisModule_ReplyWithNull(ctx);
   }
   RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
   free(val_str);
@@ -395,6 +395,7 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   KVDKStatus s =
       KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKDestroyWriteOptions(write_option);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }

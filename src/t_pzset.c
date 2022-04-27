@@ -13,9 +13,29 @@ int pmZaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
     char* string_key;
     size_t score_key_len;
     size_t string_key_len;
-    int64_t score;
-    s = RedisModule_StringToLongLong(argv[i], (long long*)&score);
-    if (s != Ok) {
+    size_t score_len;
+    const char* score_str_with_zero =
+        RedisModule_StringPtrLen(argv[i], &score_len);
+    int start_non_zero = 0;
+    while ((start_non_zero < score_len) &&
+           (score_str_with_zero[start_non_zero] == '0'))
+      start_non_zero++;
+    if (start_non_zero == score_len) {
+      if (score_str_with_zero[start_non_zero - 1] == '0')
+        start_non_zero--;
+      else
+        return RedisModule_ReplyWithError(ctx,
+                                          "ERR value is not a valid int64");
+    }
+    char* score_str = malloc(score_len - start_non_zero + 1);
+    memcpy(score_str, score_str_with_zero + start_non_zero,
+           score_len - start_non_zero);
+    score_str[score_len - start_non_zero] = '\0';
+    char* endptr;
+    char* score_str_end = score_str + score_len - start_non_zero;
+    int64_t score = strtoll(score_str, &endptr, 10);
+    free(score_str);
+    if ((score == 0) && (endptr != score_str_end)) {
       return RedisModule_ReplyWithError(ctx, "ERR value is not a valid int64");
     }
     EncodeScoreKey(score, member_str, member_len, &score_key, &score_key_len);
