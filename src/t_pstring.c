@@ -38,6 +38,7 @@ void modifyll(const char *old_val, size_t old_val_len, char **new_val,
   memcpy(*new_val, &l_new_val, sizeof(long long));
 }
 
+/*
 int IncN(const char *old_val, size_t old_val_len, char **new_val,
          size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
@@ -60,6 +61,42 @@ int IncN(const char *old_val, size_t old_val_len, char **new_val,
   }
   args->result = old_num + args->incr_by;
   memcpy(*new_val, &args->result, sizeof(int64_t));
+  return KVDK_MODIFY_WRITE;
+}
+*/
+
+int IncN(const char *old_val, size_t old_val_len, char **new_val,
+         size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  IncNArgs *args = (IncNArgs *)args_pointer;
+  long long incr = args->incr_by;
+  long long l_old_val, l_new_val;
+  if (old_val == NULL) {
+    l_old_val = 0;
+  } else {
+    if (0 == string2ll(old_val, old_val_len, &l_old_val)) {
+      args->err_no = INVALID_NUMBER;
+      return KVDK_MODIFY_ABORT;
+    }
+  }
+  if ((incr < 0 && l_old_val < 0 && incr < (LLONG_MIN - l_old_val)) ||
+      (incr > 0 && l_old_val > 0 && incr > (LLONG_MAX - l_old_val))) {
+    args->err_no = NUMBER_OVERFLOW;
+    return KVDK_MODIFY_ABORT;
+  }
+  l_new_val = l_old_val + incr;
+
+  *new_val = (char *)malloc(32);
+  if (*new_val == NULL) {
+    args->err_no = MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  *new_val_len = ll2string(*new_val, LLSTR_SIZE, l_new_val);
+  if (0 == *new_val_len) {
+    args->err_no = MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  args->result = l_new_val;
   return KVDK_MODIFY_WRITE;
 }
 

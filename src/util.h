@@ -14,9 +14,18 @@
   "Func not support at this moment, wait for kvdk support!"
 #define MSG_IMPLEMENT_IN_NEXT_PHASE \
   "Func not support at this moment, will implement in next phase"
-
+/* util from redis */
 int string2ll(const char* s, size_t slen, long long* value);
 int string2ld(const char* s, size_t slen, long double* dp);
+int ll2string(char* s, size_t len, long long value);
+
+/* Err code */
+#define INVALID_NUMBER -1
+#define NUMBER_OVERFLOW -2
+#define MALLOC_ERR -3
+
+/* Long Long string size */
+#define LLSTR_SIZE 21
 
 char* safeStrcat(char* __restrict s1, size_t s1_size, const char* __restrict s2,
                  size_t s2_size);
