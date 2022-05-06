@@ -13,6 +13,7 @@
 #include "kvdk/engine.h"
 #include "redismodule.h"
 #include "util.h"
+#include "util_redis.h"
 
 #define PMEM_FILE_SIZE 1 << 30
 #define HASH_BUCKET_NUM 1 << 27
@@ -38,11 +39,12 @@ typedef struct {
 } HSetArgs;
 
 typedef struct {
-  // int64_t incr_by;
-  // int64_t result;
-  long long incr_by;
-  long long result;
-  int64_t err_no;
+  long double ld_incr_by;
+  long double ld_result;
+  long long ll_incr_by;
+  long long ll_result;
+  // int64_t err_no;
+  rmw_err_msg err_no;
 } IncNArgs;
 
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);

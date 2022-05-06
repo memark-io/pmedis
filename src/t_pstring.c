@@ -1,102 +1,40 @@
 #include "pmedis.h"
-/*
-  if the old value can not convert to a long long number,
-      new_val_len to 0, new_val indicates error message.
-*/
-void modifyll(const char *old_val, size_t old_val_len, char **new_val,
-              size_t *new_val_len, void *n_pointer) {
-  assert(n_pointer);
-  assert(old_val_len == sizeof(long long));
-
-  /* Check whether it is a number */
-  long long l_old_val, l_new_val;
-  if (0 == string2ll(old_val, old_val_len, &l_old_val)) {
-    //*new_val_len=0;
-    //*new_val = (char*)malloc(11);
-    // char msg[11]="wrong type";
-    // memset(*new_val, 0, 11);
-    // memcpy(*new_val, msg, 11);
-    return;
-  }
-
-  long long incr = *((long long *)n_pointer);
-  if ((incr < 0 && l_old_val < 0 && incr < (LLONG_MIN - l_old_val)) ||
-      (incr > 0 && l_old_val > 0 && incr > (LLONG_MAX - l_old_val))) {
-    /* updated value will overflow */
-    //*new_val_len=0;
-    //*new_val = (char*)malloc(38);
-    // char msg[38]="increment or decrement would overflow";
-    // memset(*new_val, 0, 38);
-    // memcpy(*new_val, msg, 38);
-    return;
-  }
-  l_new_val = l_old_val + incr;
-
-  // set value
-  *new_val = (char *)malloc(sizeof(long long));
-  *new_val_len = sizeof(long long);
-  memcpy(*new_val, &l_new_val, sizeof(long long));
-}
-
-/*
-int IncN(const char *old_val, size_t old_val_len, char **new_val,
-         size_t *new_val_len, void *args_pointer) {
-  // assert(args_pointer);
-  IncNArgs *args = (IncNArgs *)args_pointer;
-  *new_val = (char *)malloc(sizeof(int64_t));
-  if (*new_val == NULL) {
-    return KVDK_MODIFY_ABORT;
-  }
-
-  *new_val_len = sizeof(int64_t);
-  int64_t old_num;
-  if (old_val == NULL) {
-    old_num = 0;
-  } else {
-    if (old_val_len != sizeof(int64_t)) {
-      return KVDK_MODIFY_ABORT;
-    }
-    // assert(old_val_len == sizeof(int64_t));
-    memcpy(&old_num, old_val, sizeof(int64_t));
-  }
-  args->result = old_num + args->incr_by;
-  memcpy(*new_val, &args->result, sizeof(int64_t));
-  return KVDK_MODIFY_WRITE;
-}
-*/
 
 int IncN(const char *old_val, size_t old_val_len, char **new_val,
          size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
   IncNArgs *args = (IncNArgs *)args_pointer;
-  long long incr = args->incr_by;
+  long long incr = args->ll_incr_by;
   long long l_old_val, l_new_val;
   if (old_val == NULL) {
     l_old_val = 0;
   } else {
+    /* return err if the old value can not convert to a long long number */
     if (0 == string2ll(old_val, old_val_len, &l_old_val)) {
-      args->err_no = INVALID_NUMBER;
+      args->err_no = RMW_INVALID_LONGLONG;
       return KVDK_MODIFY_ABORT;
     }
   }
+  /* return err if overflow*/
   if ((incr < 0 && l_old_val < 0 && incr < (LLONG_MIN - l_old_val)) ||
       (incr > 0 && l_old_val > 0 && incr > (LLONG_MAX - l_old_val))) {
-    args->err_no = NUMBER_OVERFLOW;
+    args->err_no = RMW_NUMBER_OVERFLOW;
     return KVDK_MODIFY_ABORT;
   }
   l_new_val = l_old_val + incr;
 
-  *new_val = (char *)malloc(32);
+  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
   if (*new_val == NULL) {
-    args->err_no = MALLOC_ERR;
+    args->err_no = RMW_MALLOC_ERR;
     return KVDK_MODIFY_ABORT;
   }
-  *new_val_len = ll2string(*new_val, LLSTR_SIZE, l_new_val);
+  *new_val_len = ll2string(*new_val, MAX_LLSTR_SIZE, l_new_val);
   if (0 == *new_val_len) {
-    args->err_no = MALLOC_ERR;
+    args->err_no = RMW_MALLOC_ERR;
     return KVDK_MODIFY_ABORT;
   }
-  args->result = l_new_val;
+  args->ll_result = l_new_val;
+  args->err_no = RMW_SUCCESS;
   return KVDK_MODIFY_WRITE;
 }
 
@@ -109,31 +47,50 @@ KVDKStatus incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   return s;
 }
 
+KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, IncNArgs *args) {
+  assert(RMW_SUCCESS != args->err_no);
+  switch (args->err_no) {
+    case RMW_INVALID_LONGLONG:
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is not an integer or out of range");
+    case RMW_INVALID_LONGDOUBLE:
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is not an float or out of range");
+    case RMW_NUMBER_OVERFLOW:
+      return RedisModule_ReplyWithError(ctx, "number is overflow");
+    case RMW_MALLOC_ERR:
+      return RedisModule_ReplyWithError(ctx, "memory allocation err");
+    case RMW_ISNAN_OR_INFINITY:
+      return RedisModule_ReplyWithError(
+          ctx, "increment would produce NaN or Infinity");
+    default:
+      return RedisModule_ReplyWithError(ctx, "unknown err code");
+  }
+}
+
 int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   if (argc != 2) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
-  args.incr_by = 1;
+  args.ll_incr_by = 1;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RedisModule_ReplyWithError(
-        ctx, "value is not an integer or out of range");
+    return RMW_ErrMsgPrinter(ctx, &args);
   else
-    return RedisModule_ReplyWithLongLong(ctx, args.result);
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   if (argc != 2) return RedisModule_WrongArity(ctx);
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
-  args.incr_by = -1;
+  args.ll_incr_by = -1;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RedisModule_ReplyWithError(
-        ctx, "value is not an integer or out of range");
+    return RMW_ErrMsgPrinter(ctx, &args);
   else
-    return RedisModule_ReplyWithLongLong(ctx, args.result);
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 
 int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -146,13 +103,12 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         ctx, "ERR value is not an integer or out of range");
   }
   IncNArgs args;
-  args.incr_by = incr;
+  args.ll_incr_by = incr;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RedisModule_ReplyWithError(
-        ctx, "value is not an integer or out of range");
+    return RMW_ErrMsgPrinter(ctx, &args);
   else
-    return RedisModule_ReplyWithLongLong(ctx, args.result);
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 
 int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -165,16 +121,50 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         ctx, "ERR value is not an integer or out of range");
   }
   IncNArgs args;
-  args.incr_by = -decr;
+  args.ll_incr_by = -decr;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RedisModule_ReplyWithError(
-        ctx, "value is not an integer or out of range");
+    return RMW_ErrMsgPrinter(ctx, &args);
   else
-    return RedisModule_ReplyWithLongLong(ctx, args.result);
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 
-// Wait: KVDK Read-modify-write
+int IncN_ld(const char *old_val, size_t old_val_len, char **new_val,
+            size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  IncNArgs *args = (IncNArgs *)args_pointer;
+  long double incr = args->ld_incr_by;
+  long double ld_old_val, ld_new_val;
+  if (old_val == NULL) {
+    ld_old_val = 0;
+  } else {
+    /* return err if the old value can not convert to a long long number */
+    if (0 == string2ld(old_val, old_val_len, &ld_old_val)) {
+      args->err_no = RMW_INVALID_LONGDOUBLE;
+      return KVDK_MODIFY_ABORT;
+    }
+  }
+  ld_new_val = ld_old_val + incr;
+  if (isnan(ld_new_val) || isinf(ld_new_val)) {
+    args->err_no = RMW_ISNAN_OR_INFINITY;
+    return KVDK_MODIFY_ABORT;
+  }
+
+  *new_val = (char *)malloc(MAX_LONG_DOUBLE_CHARS);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  *new_val_len =
+      ld2string(*new_val, MAX_LONG_DOUBLE_CHARS, ld_new_val, LD_STR_AUTO);
+  if (0 == *new_val_len) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  args->ld_result = ld_new_val;
+  return KVDK_MODIFY_WRITE;
+}
+
 int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc) {
   size_t key_len;
@@ -187,23 +177,17 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
         ctx, "ERR value is not an float or out of range");
   }
 
-  /*
-  size_t incr_str_len;
-  const char *incr_str = RedisModule_StringPtrLen(argv[2], &incr_str_len);
-  if (!string2ld(incr_str, incr_str_len, &incr))
-    return RedisModule_ReplyWithError(
-        ctx, "ERR value is not an float or out of range");
-  */
-  /* Get String from KVDK */
-  /* Check the original value is float or not */
-  /*
-  if (!string2ld(ori_value_str, ori_value_str_len, &ori_value))
-    return RedisModule_ReplyWithError(
-        ctx, "ERR value is not an float or out of range");
-  */
-  (void)key_str;
-  (void)ori_value;
-  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+  IncNArgs args;
+  args.ld_incr_by = incr;
+
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKStatus s =
+      KVDKModify(engine, key_str, key_len, IncN_ld, &args, free, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  if (s == Abort)
+    return RMW_ErrMsgPrinter(ctx, &args);
+  else
+    return RedisModule_ReplyWithLongDouble(ctx, args.ld_result);
 }
 
 int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
