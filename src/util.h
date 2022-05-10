@@ -21,6 +21,10 @@ typedef enum {
   RMW_ISNAN_OR_INFINITY
 } rmw_err_msg;
 
+/* Error codes */
+#define C_OK 0
+#define C_ERR -1
+
 /* Long Long string size */
 #define MAX_LLSTR_SIZE 21
 

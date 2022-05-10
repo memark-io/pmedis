@@ -330,6 +330,153 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
 
+/* The setGenericCommand() function implements the SET operation with different
+ * options and variants. This function is called in order to implement the
+ * following commands: SET, SETEX, PSETEX, SETNX, GETSET.
+ *
+ * 'flags' changes the behavior of the command (NX, XX or GET, see below).
+ *
+ * 'expire' represents an expire to set by the user, if 'expire' == INT64_MAX,
+ * the key is the persist key 'unit' indicate the expire unit is second or
+ * milliseconds.
+ */
+/*
+int setGenericCommand(RedisModuleCtx *ctx, int flags, const char* key_str,
+size_t key_len, const char* val_str, size_t val_len, long long expire, int
+unit){
+}*/
+
+/*
+ * The parseExtendedStringArgumentsOrReply() function performs the common
+ * validation for extended string arguments used in SET and GET command.
+ *
+ * Get specific commands - PERSIST/DEL
+ * Set specific commands - XX/NX/GET
+ * Common commands - EX/EXAT/PX/PXAT/KEEPTTL
+ *
+ * Function takes pointers to client, flags, unit, pointer to pointer of expire
+ * obj if needed to be determined and command_type which can be COMMAND_GET or
+ * COMMAND_SET.
+ *
+ * If there are any syntax violations C_ERR is returned else C_OK is returned.
+ *
+ * Input flags are updated upon parsing the arguments. Unit and expire are
+ * updated if there are any EX/EXAT/PX/PXAT arguments. Unit is updated to
+ * millisecond if PX/PXAT is set.
+ */
+#define OBJ_NO_FLAGS 0
+#define OBJ_SET_NX (1 << 0)  /* Set if key not exists. */
+#define OBJ_SET_XX (1 << 1)  /* Set if key exists. */
+#define OBJ_EX (1 << 2)      /* Set if time in seconds is given */
+#define OBJ_PX (1 << 3)      /* Set if time in ms in given */
+#define OBJ_KEEPTTL (1 << 4) /* Set and keep the ttl */
+#define OBJ_SET_GET (1 << 5) /* Set if want to get key before set */
+#define OBJ_EXAT (1 << 6)    /* Set if timestamp in second is given */
+#define OBJ_PXAT (1 << 7)    /* Set if timestamp in ms is given */
+#define OBJ_PERSIST (1 << 8) /* Set if we need to remove the ttl */
+
+#define COMMAND_GET 0
+#define COMMAND_SET 1
+int parseExtendedStringArgumentsOrReply(RedisModuleString **argv, int argc,
+                                        int *flags, int *unit,
+                                        long long *expire, int command_type) {
+  long long expire_time = 0;
+  int j = command_type == COMMAND_GET ? 2 : 3;
+  for (; j < argc; j++) {
+    // char *opt = c->argv[j]->ptr;
+    size_t opt_len;
+    const char *opt = RedisModule_StringPtrLen(argv[j], &opt_len);
+    // robj *next = (j == argc-1) ? NULL : c->argv[j+1];
+
+    if ((opt[0] == 'n' || opt[0] == 'N') && (opt[1] == 'x' || opt[1] == 'X') &&
+        opt[2] == '\0' && !(*flags & OBJ_SET_XX) && !(*flags & OBJ_SET_GET) &&
+        (command_type == COMMAND_SET)) {
+      *flags |= OBJ_SET_NX;
+    } else if ((opt[0] == 'x' || opt[0] == 'X') &&
+               (opt[1] == 'x' || opt[1] == 'X') && opt[2] == '\0' &&
+               !(*flags & OBJ_SET_NX) && (command_type == COMMAND_SET)) {
+      *flags |= OBJ_SET_XX;
+    } else if ((opt[0] == 'g' || opt[0] == 'G') &&
+               (opt[1] == 'e' || opt[1] == 'E') &&
+               (opt[2] == 't' || opt[2] == 'T') && opt[3] == '\0' &&
+               !(*flags & OBJ_SET_NX) && (command_type == COMMAND_SET)) {
+      *flags |= OBJ_SET_GET;
+    } else if (!strcasecmp(opt, "KEEPTTL") && !(*flags & OBJ_PERSIST) &&
+               !(*flags & OBJ_EX) && !(*flags & OBJ_EXAT) &&
+               !(*flags & OBJ_PX) && !(*flags & OBJ_PXAT) &&
+               (command_type == COMMAND_SET)) {
+      *flags |= OBJ_KEEPTTL;
+    } else if (!strcasecmp(opt, "PERSIST") && (command_type == COMMAND_GET) &&
+               !(*flags & OBJ_EX) && !(*flags & OBJ_EXAT) &&
+               !(*flags & OBJ_PX) && !(*flags & OBJ_PXAT) &&
+               !(*flags & OBJ_KEEPTTL)) {
+      *flags |= OBJ_PERSIST;
+    } else if ((opt[0] == 'e' || opt[0] == 'E') &&
+                       (opt[1] == 'x' || opt[1] == 'X') && opt[2] == '\0' &&
+                       !(*flags & OBJ_KEEPTTL) && !(*flags & OBJ_PERSIST) &&
+                       !(*flags & OBJ_EXAT) && !(*flags & OBJ_PX) &&
+                       !(*flags & OBJ_PXAT) && (j == argc - 1)
+                   ? false
+                   : (REDISMODULE_OK ==
+                      RedisModule_StringToLongLong(argv[j + 1], &expire_time)))
+    // !(*flags & OBJ_PXAT) && next)
+    {
+      *flags |= OBJ_EX;
+      *expire = expire_time;
+      j++;
+    } else if ((opt[0] == 'p' || opt[0] == 'P') &&
+                       (opt[1] == 'x' || opt[1] == 'X') && opt[2] == '\0' &&
+                       !(*flags & OBJ_KEEPTTL) && !(*flags & OBJ_PERSIST) &&
+                       !(*flags & OBJ_EX) && !(*flags & OBJ_EXAT) &&
+                       !(*flags & OBJ_PXAT) && (j == argc - 1)
+                   ? false
+                   : (REDISMODULE_OK ==
+                      RedisModule_StringToLongLong(argv[j + 1], &expire_time)))
+    // !(*flags & OBJ_PXAT) && next)
+    {
+      *flags |= OBJ_PX;
+      *unit = UNIT_MILLISECONDS;
+      *expire = expire_time;
+      j++;
+    } else if ((opt[0] == 'e' || opt[0] == 'E') &&
+                       (opt[1] == 'x' || opt[1] == 'X') &&
+                       (opt[2] == 'a' || opt[2] == 'A') &&
+                       (opt[3] == 't' || opt[3] == 'T') && opt[4] == '\0' &&
+                       !(*flags & OBJ_KEEPTTL) && !(*flags & OBJ_PERSIST) &&
+                       !(*flags & OBJ_EX) && !(*flags & OBJ_PX) &&
+                       !(*flags & OBJ_PXAT) && (j == argc - 1)
+                   ? false
+                   : (REDISMODULE_OK ==
+                      RedisModule_StringToLongLong(argv[j + 1], &expire_time)))
+    // !(*flags & OBJ_PXAT) && next)
+    {
+      *flags |= OBJ_EXAT;
+      *expire = expire_time;
+      j++;
+    } else if ((opt[0] == 'p' || opt[0] == 'P') &&
+                       (opt[1] == 'x' || opt[1] == 'X') &&
+                       (opt[2] == 'a' || opt[2] == 'A') &&
+                       (opt[3] == 't' || opt[3] == 'T') && opt[4] == '\0' &&
+                       !(*flags & OBJ_KEEPTTL) && !(*flags & OBJ_PERSIST) &&
+                       !(*flags & OBJ_EX) && !(*flags & OBJ_EXAT) &&
+                       !(*flags & OBJ_PX) && (j == argc - 1)
+                   ? false
+                   : (REDISMODULE_OK ==
+                      RedisModule_StringToLongLong(argv[j + 1], &expire_time)))
+    // !(*flags & OBJ_PX) && next)
+    {
+      *flags |= OBJ_PXAT;
+      *unit = UNIT_MILLISECONDS;
+      *expire = expire_time;
+      j++;
+    } else {
+      // addReplyErrorObject(c,shared.syntaxerr);
+      return C_ERR;
+    }
+  }
+  return C_OK;
+}
+
 int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
                         size_t key_len, KVDKStatus *s) {
   size_t val_len;
@@ -395,19 +542,54 @@ int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return pmGetGenericCommand(ctx, key_str, key_len, &s);
 }
 
-// Wait for KVDK TTL
 int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 4) return RedisModule_WrongArity(ctx);
-  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  size_t val_len;
+  const char *val_str = RedisModule_StringPtrLen(argv[3], &val_len);
+  long long milliseconds = 0;
+  if ((REDISMODULE_ERR ==
+       RedisModule_StringToLongLong(argv[2], &milliseconds)) ||
+      (milliseconds > LLONG_MAX / 1000)) {
+    return RedisModule_ReplyWithError(ctx, "invalid expire time");
+  }
+  milliseconds *= 1000;
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
+  KVDKStatus s =
+      KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
+  return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
 
-// Wait for KVDK TTL
 int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 4) return RedisModule_WrongArity(ctx);
-  return RedisModule_ReplyWithError(ctx, MSG_WAIT_KVDK_FUNC_SUPPORT);
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  size_t val_len;
+  const char *val_str = RedisModule_StringPtrLen(argv[3], &val_len);
+  long long milliseconds = 0;
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &milliseconds)) {
+    return RedisModule_ReplyWithError(ctx, "invalid expire time");
+  }
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
+  KVDKStatus s =
+      KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
+  return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
-
-int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+// ongoing
+/* SET key value [NX] [XX] [KEEPTTL] [GET] [EX <seconds>] [PX <milliseconds>]
+ *     [EXAT <seconds-timestamp>][PXAT <milliseconds-timestamp>] */
+/* int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
@@ -417,6 +599,52 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKStatus s =
       KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
   KVDKDestroyWriteOptions(write_option);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
+  return RedisModule_ReplyWithSimpleString(ctx, "OK");
+}*/
+
+int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  int unit = UNIT_SECONDS;
+  int flags = OBJ_NO_FLAGS;
+  long long milliseconds = 0;
+  size_t key_len, val_len, ori_val_len;
+  char *ori_val_str;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
+
+  if (parseExtendedStringArgumentsOrReply(argv, argc, &flags, &unit,
+                                          &milliseconds, COMMAND_SET) != C_OK) {
+    return RedisModule_ReplyWithError(ctx, "Set Option Err!");
+  }
+  // check expire time overflow
+  if (milliseconds <= 0 ||
+      (unit == UNIT_SECONDS && milliseconds > LLONG_MAX / 1000)) {
+    return RedisModule_ReplyWithError(ctx, "invalid expire time in PM.Set");
+  }
+  if (unit == UNIT_SECONDS) milliseconds *= 1000;
+
+  // condition 1 NX set, but key exists --> then err
+  KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
+  if (flags & OBJ_SET_NX && s == Ok) {
+    return RedisModule_ReplyWithError(ctx, "Err! Set NX but key exists");
+  }
+  // condition 2 XX set, but key not exists --> then err
+  if (flags & OBJ_SET_XX && s == NotFound) {
+    return RedisModule_ReplyWithError(ctx, "Err! Set XX but key not exists");
+  }
+
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  if (milliseconds != 0) {
+    KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
+  }
+  s = KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  if ((s == Ok) || (flags & OBJ_SET_GET)) {
+    RedisModule_ReplyWithStringBuffer(ctx, ori_val_str, ori_val_len);
+  }
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   }
