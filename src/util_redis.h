@@ -53,4 +53,5 @@ int string2ld(const char* s, size_t slen, long double* dp);
 int ll2string(char* s, size_t len, long long value);
 int ld2string(char* buf, size_t len, long double value, ld2string_mode mode);
 
+long long mstime(void);
 #endif

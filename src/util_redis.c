@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 //#include "util.h"
 #include "util_redis.h"
 
@@ -269,4 +269,14 @@ int string2ld(const char* s, size_t slen, long double* dp) {
 
   if (dp) *dp = value;
   return 1;
+}
+
+static long long mstime(void) {
+  struct timeval tv;
+  long long mst;
+
+  gettimeofday(&tv, NULL);
+  mst = ((long long)tv.tv_sec) * 1000;
+  mst += tv.tv_usec / 1000;
+  return mst;
 }
