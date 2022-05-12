@@ -473,6 +473,65 @@ int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
   return REDISMODULE_OK;
 }
 
+int pmGetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+
+  size_t key_len, val_len;
+  char *val_str;
+  long long start, end;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &start)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+  }
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[3], &end)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+  }
+  /* Convert negative indexes */
+  if (start < 0 && end < 0 && start > end) {
+    return RedisModule_ReplyWithEmptyString(ctx);
+  }
+  KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
+  if (s != Ok && s != NotFound) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  } else if (NotFound == s) {
+    return RedisModule_ReplyWithEmptyString(ctx);
+  }
+
+  if (start < 0) start = val_len + start;
+  if (end < 0) end = val_len + end;
+  if (start < 0) start = 0;
+  if (end < 0) end = 0;
+  if ((unsigned long long)end >= val_len) end = val_len - 1;
+
+  if (start > end || val_len == 0) {
+    RedisModule_ReplyWithEmptyString(ctx);
+  } else {
+    RedisModule_ReplyWithStringBuffer(ctx, val_str + start, end - start + 1);
+  }
+  free(val_str);
+  return REDISMODULE_OK;
+}
+
+int pmGetsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 3) return RedisModule_WrongArity(ctx);
+  size_t key_len, val_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
+  KVDKStatus sGet, sSet;
+  pmGetGenericCommand(ctx, key_str, key_len, &sGet);
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  sSet = KVDKSet(engine, key_str, key_len, val_str, val_len, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  if (sSet != Ok) {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[sSet]);
+  } else if (sGet != Ok && sGet != NotFound) {
+    return REDISMODULE_ERR;
+  }
+  return REDISMODULE_OK;
+}
+
 int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len;

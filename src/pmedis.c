@@ -135,6 +135,13 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.msetnx", pmMsetnxCommand,
                                 "write deny-oom", 1, -1, 2) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getrange", pmGetrangeCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getset", pmGetsetCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.getdel", pmGetdelCommand, "write fast",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
