@@ -480,6 +480,8 @@ int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (sDel != Ok) {
       return RedisModule_ReplyWithError(ctx, enum_to_str[sDel]);
     }
+  } else if (sGet != Ok && sGet != NotFound) {
+    return REDISMODULE_ERR;
   }
   return REDISMODULE_OK;
 }
@@ -506,7 +508,6 @@ int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
  *
  * Command would either return the bulk string, error or nil.
  */
-// ongoing
 int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   int unit = UNIT_SECONDS;
   int flags = OBJ_NO_FLAGS;
