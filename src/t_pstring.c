@@ -619,7 +619,7 @@ int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   free(ori_val_str);
   return REDISMODULE_OK;
 }
-// Wait for KVDK TTL
+
 int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len;
@@ -737,7 +737,7 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
 /* impletement PM.SETRANGE by using read-modify-write */
 int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
-         size_t *new_val_len, void *args_pointer) {
+                 size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
   SetRangeArgs *args = (SetRangeArgs *)args_pointer;
   const char *val_str = args->val_str;
@@ -745,23 +745,24 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
   long offset = args->ll_offset;
 
   /* Return existing string length when setting nothing */
-  if(val_len == 0){
-    args->ll_strlen_after_result=old_val_len;
+  if (val_len == 0) {
+    args->ll_strlen_after_result = old_val_len;
     args->err_no = RMW_SUCCESS;
     return KVDK_MODIFY_ABORT;
   }
-  
-  /* Return when the resulting string exceeds allowed size 
-   * Currently maximum size of KVDK string is configrable and the default value is 512 MB*/
-  if(offset + val_len > MAX_KVDK_STRING_SIZE){
+
+  /* Return when the resulting string exceeds allowed size
+   * Currently maximum size of KVDK string is configrable and the default value
+   * is 512 MB*/
+  if (offset + val_len > MAX_KVDK_STRING_SIZE) {
     args->err_no = RMW_STRING_OVER_MAXSIZE;
     return KVDK_MODIFY_ABORT;
   }
 
   /* copy string */
-  if(old_val_len > offset + val_len){
+  if (old_val_len > offset + val_len) {
     *new_val_len = old_val_len;
-  }else{
+  } else {
     *new_val_len = offset + val_len;
   }
   *new_val = (char *)malloc(*new_val_len);
@@ -774,7 +775,7 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
     /* key exists */
     memcpy(*new_val, old_val, old_val_len);
   }
-  memcpy(*new_val+offset, val_str, val_len);
+  memcpy(*new_val + offset, val_str, val_len);
   args->ll_strlen_after_result = *new_val_len;
   args->err_no = RMW_SUCCESS;
   return KVDK_MODIFY_WRITE;
@@ -783,8 +784,8 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
 KVDKStatus setRange(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
                     SetRangeArgs *args) {
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, setRangeFunc, args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, setRangeFunc, args, free,
+                            write_option);
   KVDKDestroyWriteOptions(write_option);
   return s;
 }
@@ -793,15 +794,14 @@ int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 4) return RedisModule_WrongArity(ctx);
 
   size_t key_len, val_len;
-  long long offset=0;
+  long long offset = 0;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &offset)) {
     return RedisModule_ReplyWithError(
         ctx, "ERR offset is not an integer or out of range");
   }
-  if(offset < 0){
-    return RedisModule_ReplyWithError(
-        ctx, "ERR offset is out of range");
+  if (offset < 0) {
+    return RedisModule_ReplyWithError(ctx, "ERR offset is out of range");
   }
   const char *val_str = RedisModule_StringPtrLen(argv[3], &val_len);
   SetRangeArgs args;
@@ -809,9 +809,9 @@ int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.val_len = val_len;
   args.ll_offset = offset;
   KVDKStatus s = setRange(ctx, key_str, key_len, &args);
-  if(s == Abort && args.err_no != RMW_SUCCESS){
+  if (s == Abort && args.err_no != RMW_SUCCESS) {
     return RMW_ErrMsgPrinter(ctx, args.err_no);
-  }else{
+  } else {
     return RedisModule_ReplyWithLongLong(ctx, args.ll_strlen_after_result);
   }
 }

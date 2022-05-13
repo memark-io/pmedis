@@ -27,7 +27,7 @@ typedef enum {
 #define C_ERR -1
 
 /* KVDK string size */
-#define MAX_KVDK_STRING_SIZE 512*1024*1024
+#define MAX_KVDK_STRING_SIZE 512 * 1024 * 1024
 
 /* Long Long string size */
 #define MAX_LLSTR_SIZE 21
