@@ -44,9 +44,16 @@ typedef struct {
   long double ld_result;
   long long ll_incr_by;
   long long ll_result;
-  // int64_t err_no;
   rmw_err_msg err_no;
 } IncNArgs;
+
+typedef struct {
+  const char *val_str;
+  size_t val_len;
+  long long ll_offset;
+  long long ll_strlen_after_result;
+  rmw_err_msg err_no;
+} SetRangeArgs;
 
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
@@ -87,6 +94,8 @@ extern int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 extern int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc);
 extern int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc);
 extern int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);

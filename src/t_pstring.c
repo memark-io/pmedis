@@ -47,9 +47,9 @@ KVDKStatus incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
   return s;
 }
 
-KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, IncNArgs *args) {
-  assert(RMW_SUCCESS != args->err_no);
-  switch (args->err_no) {
+KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, rmw_err_msg err_no) {
+  assert(RMW_SUCCESS != err_no);
+  switch (err_no) {
     case RMW_INVALID_LONGLONG:
       return RedisModule_ReplyWithError(
           ctx, "ERR value is not an integer or out of range");
@@ -60,6 +60,8 @@ KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, IncNArgs *args) {
       return RedisModule_ReplyWithError(ctx, "number is overflow");
     case RMW_MALLOC_ERR:
       return RedisModule_ReplyWithError(ctx, "memory allocation err");
+    case RMW_STRING_OVER_MAXSIZE:
+      return RedisModule_ReplyWithError(ctx, "over max string length");
     case RMW_ISNAN_OR_INFINITY:
       return RedisModule_ReplyWithError(
           ctx, "increment would produce NaN or Infinity");
@@ -76,7 +78,7 @@ int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.ll_incr_by = 1;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RMW_ErrMsgPrinter(ctx, &args);
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
@@ -88,7 +90,7 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.ll_incr_by = -1;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RMW_ErrMsgPrinter(ctx, &args);
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
@@ -106,7 +108,7 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.ll_incr_by = incr;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RMW_ErrMsgPrinter(ctx, &args);
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
@@ -124,7 +126,7 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.ll_incr_by = -decr;
   KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
   if (s == Abort)
-    return RMW_ErrMsgPrinter(ctx, &args);
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
@@ -185,7 +187,7 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
       KVDKModify(engine, key_str, key_len, IncN_ld, &args, free, write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s == Abort)
-    return RMW_ErrMsgPrinter(ctx, &args);
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongDouble(ctx, args.ld_result);
 }
@@ -731,6 +733,87 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     free(ori_val_str);
   }
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
+}
+
+/* impletement PM.SETRANGE by using read-modify-write */
+int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
+         size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  SetRangeArgs *args = (SetRangeArgs *)args_pointer;
+  const char *val_str = args->val_str;
+  size_t val_len = args->val_len;
+  long offset = args->ll_offset;
+
+  /* Return existing string length when setting nothing */
+  if(val_len == 0){
+    args->ll_strlen_after_result=old_val_len;
+    args->err_no = RMW_SUCCESS;
+    return KVDK_MODIFY_ABORT;
+  }
+  
+  /* Return when the resulting string exceeds allowed size 
+   * Currently maximum size of KVDK string is configrable and the default value is 512 MB*/
+  if(offset + val_len > MAX_KVDK_STRING_SIZE){
+    args->err_no = RMW_STRING_OVER_MAXSIZE;
+    return KVDK_MODIFY_ABORT;
+  }
+
+  /* copy string */
+  if(old_val_len > offset + val_len){
+    *new_val_len = old_val_len;
+  }else{
+    *new_val_len = offset + val_len;
+  }
+  *new_val = (char *)malloc(*new_val_len);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  memset(*new_val, 0, *new_val_len);
+  if (old_val != NULL) {
+    /* key exists */
+    memcpy(*new_val, old_val, old_val_len);
+  }
+  memcpy(*new_val+offset, val_str, val_len);
+  args->ll_strlen_after_result = *new_val_len;
+  args->err_no = RMW_SUCCESS;
+  return KVDK_MODIFY_WRITE;
+}
+
+KVDKStatus setRange(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
+                    SetRangeArgs *args) {
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  KVDKStatus s =
+      KVDKModify(engine, key_str, key_len, setRangeFunc, args, free, write_option);
+  KVDKDestroyWriteOptions(write_option);
+  return s;
+}
+
+int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+
+  size_t key_len, val_len;
+  long long offset=0;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &offset)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR offset is not an integer or out of range");
+  }
+  if(offset < 0){
+    return RedisModule_ReplyWithError(
+        ctx, "ERR offset is out of range");
+  }
+  const char *val_str = RedisModule_StringPtrLen(argv[3], &val_len);
+  SetRangeArgs args;
+  args.val_str = val_str;
+  args.val_len = val_len;
+  args.ll_offset = offset;
+  KVDKStatus s = setRange(ctx, key_str, key_len, &args);
+  if(s == Abort && args.err_no != RMW_SUCCESS){
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
+  }else{
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_strlen_after_result);
+  }
 }
 
 int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {

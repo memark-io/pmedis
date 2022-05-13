@@ -18,12 +18,16 @@ typedef enum {
   RMW_INVALID_LONGDOUBLE,
   RMW_NUMBER_OVERFLOW,
   RMW_MALLOC_ERR,
+  RMW_STRING_OVER_MAXSIZE,
   RMW_ISNAN_OR_INFINITY
 } rmw_err_msg;
 
 /* Error codes */
 #define C_OK 0
 #define C_ERR -1
+
+/* KVDK string size */
+#define MAX_KVDK_STRING_SIZE 512*1024*1024
 
 /* Long Long string size */
 #define MAX_LLSTR_SIZE 21
