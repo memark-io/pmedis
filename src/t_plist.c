@@ -236,7 +236,7 @@ int pmLsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     KVDKListIteratorSeekPos(iter, list_sz - (-idx));
   size_t val_len;
   const char *val = RedisModule_StringPtrLen(argv[3], &val_len);
-  s = KVDKListSet(engine, iter, val, val_len);
+  s = KVDKListPut(engine, iter, val, val_len);
   if (s == Ok) {
     RedisModule_ReplyWithSimpleString(ctx, "OK");
   } else {
