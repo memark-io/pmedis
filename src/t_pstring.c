@@ -38,15 +38,14 @@ int IncN(const char *old_val, size_t old_val_len, char **new_val,
   return KVDK_MODIFY_WRITE;
 }
 
-KVDKStatus incrDecr(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
-                    IncNArgs *args) {
+KVDKStatus incrDecr(const char *key_str, size_t key_len, IncNArgs *args) {
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   KVDKStatus s =
       KVDKModify(engine, key_str, key_len, IncN, args, free, write_option);
   KVDKDestroyWriteOptions(write_option);
   return s;
 }
-
+/*
 KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, rmw_err_msg err_no) {
   assert(RMW_SUCCESS != err_no);
   switch (err_no) {
@@ -68,7 +67,7 @@ KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx *ctx, rmw_err_msg err_no) {
     default:
       return RedisModule_ReplyWithError(ctx, "unknown err code");
   }
-}
+}*/
 
 int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
@@ -76,7 +75,7 @@ int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
   args.ll_incr_by = 1;
-  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  KVDKStatus s = incrDecr(key_str, key_len, &args);
   if (s == Abort)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
@@ -88,7 +87,7 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
   args.ll_incr_by = -1;
-  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  KVDKStatus s = incrDecr(key_str, key_len, &args);
   if (s == Abort)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
@@ -106,7 +105,7 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   IncNArgs args;
   args.ll_incr_by = incr;
-  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  KVDKStatus s = incrDecr(key_str, key_len, &args);
   if (s == Abort)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
@@ -124,7 +123,7 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   IncNArgs args;
   args.ll_incr_by = -decr;
-  KVDKStatus s = incrDecr(ctx, key_str, key_len, &args);
+  KVDKStatus s = incrDecr(key_str, key_len, &args);
   if (s == Abort)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
@@ -781,8 +780,7 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
   return KVDK_MODIFY_WRITE;
 }
 
-KVDKStatus setRange(RedisModuleCtx *ctx, const char *key_str, size_t key_len,
-                    SetRangeArgs *args) {
+KVDKStatus setRange(const char *key_str, size_t key_len, SetRangeArgs *args) {
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   KVDKStatus s = KVDKModify(engine, key_str, key_len, setRangeFunc, args, free,
                             write_option);
@@ -808,7 +806,7 @@ int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.val_str = val_str;
   args.val_len = val_len;
   args.ll_offset = offset;
-  KVDKStatus s = setRange(ctx, key_str, key_len, &args);
+  KVDKStatus s = setRange(key_str, key_len, &args);
   if (s == Abort && args.err_no != RMW_SUCCESS) {
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   } else {

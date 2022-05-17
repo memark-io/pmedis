@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <time.h>
 
+#include "kvdk/engine.h"
+#include "redismodule.h"
+
 #define MSG_WAIT_KVDK_FUNC_SUPPORT \
   "Func not support at this moment, wait for kvdk support!"
 #define MSG_IMPLEMENT_IN_NEXT_PHASE \
@@ -46,4 +49,5 @@ void EncodeStringKey(const char* collection, size_t collection_len,
                      size_t* string_key_len);
 void DecodeScoreKey(char* score_key, size_t score_key_len, char** member,
                     size_t* member_len, int64_t* score);
+KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx* ctx, rmw_err_msg err_no);
 #endif

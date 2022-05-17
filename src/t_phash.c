@@ -44,6 +44,14 @@ int pmHsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     args.len = val_len;
     s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HSetFunc,
                        &args, NULL);
+    if (s == NotFound) {
+      s = KVDKHashCreate(engine, key_str, key_len);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
+      }
+      s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                         HSetFunc, &args, NULL);
+    }
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
     }
@@ -110,15 +118,97 @@ int pmHmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 int pmHmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
-int pmHincrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  return REDISMODULE_OK;
+
+int HIncrFunc(const char *old_val, size_t old_val_len, char **new_val,
+              size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  IncNArgs *args = (IncNArgs *)args_pointer;
+  long long incr = args->ll_incr_by;
+  long long l_old_val, l_new_val;
+  if (old_val == NULL) {
+    l_old_val = 0;
+  } else {
+    /* return err if the old value can not convert to a long long number */
+    if (0 == string2ll(old_val, old_val_len, &l_old_val)) {
+      args->err_no = RMW_INVALID_LONGLONG;
+      return KVDK_MODIFY_ABORT;
+    }
+  }
+  /* return err if overflow*/
+  if ((incr < 0 && l_old_val < 0 && incr < (LLONG_MIN - l_old_val)) ||
+      (incr > 0 && l_old_val > 0 && incr > (LLONG_MAX - l_old_val))) {
+    args->err_no = RMW_NUMBER_OVERFLOW;
+    return KVDK_MODIFY_ABORT;
+  }
+  l_new_val = l_old_val + incr;
+
+  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  *new_val_len = ll2string(*new_val, MAX_LLSTR_SIZE, l_new_val);
+  if (0 == *new_val_len) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  args->ll_result = l_new_val;
+  args->err_no = RMW_SUCCESS;
+  return KVDK_MODIFY_WRITE;
 }
+
+int pmHincrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+  size_t key_len, field_len;
+  KVDKStatus s;
+  long long incr;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *field_str = RedisModule_StringPtrLen(argv[2], &field_len);
+  if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[3], &incr)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an integer or out of range");
+  }
+  IncNArgs args;
+  args.ll_incr_by = incr;
+  s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HIncrFunc,
+                     &args, free);
+  if (s == NotFound) {
+    s = KVDKHashCreate(engine, key_str, key_len);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
+    }
+    s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                       HIncrFunc, &args, free);
+  }
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
+  }
+  if (s == Abort)
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
+  else
+    return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
+}
+
 int pmHincrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc) {
   return REDISMODULE_OK;
 }
 int pmHdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  return REDISMODULE_OK;
+  if (argc < 3) return RedisModule_WrongArity(ctx);
+  KVDKStatus s;
+  size_t key_len, deleted = 0;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  for (int i = 2; i < argc; ++i) {
+    size_t field_len;
+    const char *field_str = RedisModule_StringPtrLen(argv[i], &field_len);
+    s = KVDKHashDelete(engine, key_str, key_len, field_str, field_len);
+    if (s != Ok && s != NotFound) {
+      return RedisModule_ReplyWithError(ctx, "ERR in PM.HDEL");
+    } else if (s == Ok) {
+      ++deleted;
+    }
+  }
+  return RedisModule_ReplyWithLongLong(ctx, deleted);
 }
 int pmHlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);

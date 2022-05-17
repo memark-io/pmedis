@@ -1,6 +1,7 @@
 
 #include "util.h"
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
@@ -8,7 +9,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "redismodule.h"
+KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx* ctx, rmw_err_msg err_no) {
+  assert(RMW_SUCCESS != err_no);
+  switch (err_no) {
+    case RMW_INVALID_LONGLONG:
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is not an integer or out of range");
+    case RMW_INVALID_LONGDOUBLE:
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is not an float or out of range");
+    case RMW_NUMBER_OVERFLOW:
+      return RedisModule_ReplyWithError(ctx, "number is overflow");
+    case RMW_MALLOC_ERR:
+      return RedisModule_ReplyWithError(ctx, "memory allocation err");
+    case RMW_STRING_OVER_MAXSIZE:
+      return RedisModule_ReplyWithError(ctx, "over max string length");
+    case RMW_ISNAN_OR_INFINITY:
+      return RedisModule_ReplyWithError(
+          ctx, "increment would produce NaN or Infinity");
+    default:
+      return RedisModule_ReplyWithError(ctx, "unknown err code");
+  }
+}
 
 char* safeStrcat(char* __restrict s1, size_t s1_size, const char* __restrict s2,
                  size_t s2_size) {
