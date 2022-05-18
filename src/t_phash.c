@@ -73,6 +73,14 @@ int pmHsetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.len = val_len;
   s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HSetNXFunc,
                      &args, NULL);
+  if (s == NotFound) {
+    s = KVDKHashCreate(engine, key_str, key_len);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
+    }
+    s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                       HSetNXFunc, &args, NULL);
+  }
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
   }
@@ -109,6 +117,14 @@ int pmHmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     args.len = val_len;
     s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HSetFunc,
                        &args, NULL);
+    if (s == NotFound) {
+      s = KVDKHashCreate(engine, key_str, key_len);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
+      }
+      s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                         HSetFunc, &args, NULL);
+    }
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
     }
