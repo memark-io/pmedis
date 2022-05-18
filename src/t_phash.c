@@ -135,12 +135,19 @@ int pmHmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }
 
-int HIncrFunc(const char *old_val, size_t old_val_len, char **new_val,
-              size_t *new_val_len, void *args_pointer) {
+int HincrbyFunc(const char *old_val, size_t old_val_len, char **new_val,
+                size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
   IncNArgs *args = (IncNArgs *)args_pointer;
   long long incr = args->ll_incr_by;
   long long l_old_val, l_new_val;
+
+  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+
   if (old_val == NULL) {
     l_old_val = 0;
   } else {
@@ -158,11 +165,6 @@ int HIncrFunc(const char *old_val, size_t old_val_len, char **new_val,
   }
   l_new_val = l_old_val + incr;
 
-  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
-  if (*new_val == NULL) {
-    args->err_no = RMW_MALLOC_ERR;
-    return KVDK_MODIFY_ABORT;
-  }
   *new_val_len = ll2string(*new_val, MAX_LLSTR_SIZE, l_new_val);
   if (0 == *new_val_len) {
     args->err_no = RMW_MALLOC_ERR;
@@ -186,29 +188,90 @@ int pmHincrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   IncNArgs args;
   args.ll_incr_by = incr;
-  s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HIncrFunc,
-                     &args, free);
+  s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                     HincrbyFunc, &args, free);
   if (s == NotFound) {
     s = KVDKHashCreate(engine, key_str, key_len);
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
     }
     s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
-                       HIncrFunc, &args, free);
+                       HincrbyFunc, &args, free);
   }
-  if (s != Ok) {
-    return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
-  }
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 
+int HincrbyFloatFunc(const char *old_val, size_t old_val_len, char **new_val,
+                     size_t *new_val_len, void *args_pointer) {
+  // assert(args_pointer);
+  IncNArgs *args = (IncNArgs *)args_pointer;
+  long double incr = args->ld_incr_by;
+  long double ld_old_val, ld_new_val;
+
+  *new_val = (char *)malloc(MAX_LONG_DOUBLE_CHARS);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  if (old_val == NULL) {
+    ld_old_val = 0;
+  } else {
+    /* return err if the old value can not convert to a long long number */
+    if (0 == string2ld(old_val, old_val_len, &ld_old_val)) {
+      args->err_no = RMW_INVALID_LONGDOUBLE;
+      return KVDK_MODIFY_ABORT;
+    }
+  }
+  ld_new_val = ld_old_val + incr;
+  if (isnan(ld_new_val) || isinf(ld_new_val)) {
+    args->err_no = RMW_ISNAN_OR_INFINITY;
+    return KVDK_MODIFY_ABORT;
+  }
+
+  *new_val_len =
+      ld2string(*new_val, MAX_LONG_DOUBLE_CHARS, ld_new_val, LD_STR_AUTO);
+  if (0 == *new_val_len) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
+  args->ld_result = ld_new_val;
+  return KVDK_MODIFY_WRITE;
+}
+
 int pmHincrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc) {
-  return REDISMODULE_OK;
+  if (argc != 4) return RedisModule_WrongArity(ctx);
+  size_t key_len, field_len;
+  long double incr, ori_value;
+  KVDKStatus s;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  const char *field_str = RedisModule_StringPtrLen(argv[2], &field_len);
+  if (REDISMODULE_ERR == RedisModule_StringToLongDouble(argv[3], &incr)) {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR value is not an float or out of range");
+  }
+  IncNArgs args;
+  args.ld_incr_by = incr;
+
+  s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                     HincrbyFloatFunc, &args, free);
+  if (s == NotFound) {
+    s = KVDKHashCreate(engine, key_str, key_len);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, "ERR KVDKHashCreate");
+    }
+    s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                       HincrbyFloatFunc, &args, free);
+  }
+  if (s != Ok)
+    return RMW_ErrMsgPrinter(ctx, args.err_no);
+  else
+    return RedisModule_ReplyWithLongDouble(ctx, args.ld_result);
 }
+
 int pmHdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc < 3) return RedisModule_WrongArity(ctx);
   KVDKStatus s;

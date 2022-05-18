@@ -1,11 +1,17 @@
 #include "pmedis.h"
 
-int IncNFunc(const char *old_val, size_t old_val_len, char **new_val,
-             size_t *new_val_len, void *args_pointer) {
+int IncrbyFunc(const char *old_val, size_t old_val_len, char **new_val,
+               size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
   IncNArgs *args = (IncNArgs *)args_pointer;
   long long incr = args->ll_incr_by;
   long long l_old_val, l_new_val;
+
+  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
   if (old_val == NULL) {
     l_old_val = 0;
   } else {
@@ -23,11 +29,6 @@ int IncNFunc(const char *old_val, size_t old_val_len, char **new_val,
   }
   l_new_val = l_old_val + incr;
 
-  *new_val = (char *)malloc(MAX_LLSTR_SIZE);
-  if (*new_val == NULL) {
-    args->err_no = RMW_MALLOC_ERR;
-    return KVDK_MODIFY_ABORT;
-  }
   *new_val_len = ll2string(*new_val, MAX_LLSTR_SIZE, l_new_val);
   if (0 == *new_val_len) {
     args->err_no = RMW_MALLOC_ERR;
@@ -45,11 +46,11 @@ int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   IncNArgs args;
   args.ll_incr_by = 1;
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, IncNFunc, &args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                            write_option);
   KVDKDestroyWriteOptions(write_option);
 
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
@@ -61,10 +62,10 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   IncNArgs args;
   args.ll_incr_by = -1;
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, IncNFunc, &args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                            write_option);
   KVDKDestroyWriteOptions(write_option);
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
@@ -82,10 +83,10 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   IncNArgs args;
   args.ll_incr_by = incr;
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, IncNFunc, &args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                            write_option);
   KVDKDestroyWriteOptions(write_option);
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
@@ -103,21 +104,27 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   IncNArgs args;
   args.ll_incr_by = -decr;
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, IncNFunc, &args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                            write_option);
   KVDKDestroyWriteOptions(write_option);
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongLong(ctx, args.ll_result);
 }
 
-int IncN_ld(const char *old_val, size_t old_val_len, char **new_val,
-            size_t *new_val_len, void *args_pointer) {
+int IncrbyFloatFunc(const char *old_val, size_t old_val_len, char **new_val,
+                    size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
   IncNArgs *args = (IncNArgs *)args_pointer;
   long double incr = args->ld_incr_by;
   long double ld_old_val, ld_new_val;
+  // allocate space first since the free() will be called if any ABORT happened
+  *new_val = (char *)malloc(MAX_LONG_DOUBLE_CHARS);
+  if (*new_val == NULL) {
+    args->err_no = RMW_MALLOC_ERR;
+    return KVDK_MODIFY_ABORT;
+  }
   if (old_val == NULL) {
     ld_old_val = 0;
   } else {
@@ -130,12 +137,6 @@ int IncN_ld(const char *old_val, size_t old_val_len, char **new_val,
   ld_new_val = ld_old_val + incr;
   if (isnan(ld_new_val) || isinf(ld_new_val)) {
     args->err_no = RMW_ISNAN_OR_INFINITY;
-    return KVDK_MODIFY_ABORT;
-  }
-
-  *new_val = (char *)malloc(MAX_LONG_DOUBLE_CHARS);
-  if (*new_val == NULL) {
-    args->err_no = RMW_MALLOC_ERR;
     return KVDK_MODIFY_ABORT;
   }
   *new_val_len =
@@ -164,10 +165,10 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   args.ld_incr_by = incr;
 
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s =
-      KVDKModify(engine, key_str, key_len, IncN_ld, &args, free, write_option);
+  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFloatFunc, &args,
+                            free, write_option);
   KVDKDestroyWriteOptions(write_option);
-  if (s == Abort)
+  if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   else
     return RedisModule_ReplyWithLongDouble(ctx, args.ld_result);
