@@ -272,6 +272,19 @@ int pmHincrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     return RedisModule_ReplyWithLongDouble(ctx, args.ld_result);
 }
 
+int HDelFunc(char const *old_data, size_t old_len, char **new_data,
+             size_t *new_len, void *args) {
+  HDelArgs *my_args = (HDelArgs *)args;
+  if (old_data == NULL) {
+    assert(old_len == 0);
+    my_args->ret = 0;
+    return KVDK_MODIFY_NOOP;
+  } else {
+    my_args->ret = 1;
+    return KVDK_MODIFY_DELETE;
+  }
+}
+
 int pmHdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc < 3) return RedisModule_WrongArity(ctx);
   KVDKStatus s;
@@ -280,15 +293,20 @@ int pmHdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   for (int i = 2; i < argc; ++i) {
     size_t field_len;
     const char *field_str = RedisModule_StringPtrLen(argv[i], &field_len);
-    s = KVDKHashDelete(engine, key_str, key_len, field_str, field_len);
-    if (s != Ok && s != NotFound) {
-      return RedisModule_ReplyWithError(ctx, "ERR in PM.HDEL");
-    } else if (s == Ok) {
-      ++deleted;
+    HDelArgs args;
+    s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, HDelFunc,
+                       &args, NULL);
+    if (s == NotFound) {
+      continue;
     }
+    if (s != Ok && s != NotFound) {
+      return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
+    }
+    deleted += args.ret;
   }
   return RedisModule_ReplyWithLongLong(ctx, deleted);
 }
+
 int pmHlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len, hash_sz;

@@ -40,6 +40,10 @@ typedef struct {
 } HSetArgs;
 
 typedef struct {
+  size_t ret; /*1: exists; 0: not exists */
+} HDelArgs;
+
+typedef struct {
   long double ld_incr_by;
   long double ld_result;
   long long ll_incr_by;
