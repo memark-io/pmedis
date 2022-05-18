@@ -14,6 +14,7 @@ int HSetNXFunc(char const *old_data, size_t old_len, char **new_data,
     return KVDK_MODIFY_NOOP;
   }
 }
+
 int HSetFunc(char const *old_data, size_t old_len, char **new_data,
              size_t *new_len, void *args) {
   HSetArgs *my_args = (HSetArgs *)args;
@@ -59,6 +60,7 @@ int pmHsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, created);
 }
+
 int pmHsetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 4) {
     return RedisModule_WrongArity(ctx);
@@ -86,6 +88,7 @@ int pmHsetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, args.ret);
 }
+
 int pmHgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len, field_len;
@@ -102,6 +105,7 @@ int pmHgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   free(val);
   return REDISMODULE_OK;
 }
+
 int pmHmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if ((argc % 2) == 1) {
     return RedisModule_WrongArity(ctx);
@@ -131,7 +135,27 @@ int pmHmsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
+
 int pmHmgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 3) return RedisModule_WrongArity(ctx);
+  KVDKStatus s;
+  size_t key_len = 0;
+  char *val;
+  size_t val_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  RedisModule_ReplyWithArray(ctx, argc - 2);
+  for (int i = 2; i < argc; ++i) {
+    size_t field_len;
+    const char *field_str = RedisModule_StringPtrLen(argv[i], &field_len);
+    KVDKStatus s = KVDKHashGet(engine, key_str, key_len, field_str, field_len,
+                               &val, &val_len);
+    if (s != Ok) {
+      RedisModule_ReplyWithNull(ctx);
+    } else {
+      RedisModule_ReplyWithStringBuffer(ctx, val, val_len);
+      free(val);
+    }
+  }
   return REDISMODULE_OK;
 }
 
@@ -317,6 +341,7 @@ int pmHlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, hash_sz);
 }
+
 int pmHstrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len, field_len;
@@ -333,6 +358,7 @@ int pmHstrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   free(val);
   return REDISMODULE_OK;
 }
+
 int pmHkeysCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len, hash_sz;
@@ -358,6 +384,7 @@ int pmHkeysCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKHashIteratorDestroy(iter);
   return REDISMODULE_OK;
 }
+
 int pmHvalsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len, hash_sz;
@@ -383,6 +410,7 @@ int pmHvalsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKHashIteratorDestroy(iter);
   return REDISMODULE_OK;
 }
+
 int pmHgetallCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 2) return RedisModule_WrongArity(ctx);
   size_t key_len, hash_sz;
@@ -414,6 +442,7 @@ int pmHgetallCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKHashIteratorDestroy(iter);
   return REDISMODULE_OK;
 }
+
 int pmHexistsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 3) return RedisModule_WrongArity(ctx);
   size_t key_len, field_len;
@@ -429,6 +458,7 @@ int pmHexistsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   free(val);
   return RedisModule_ReplyWithLongLong(ctx, 1);
 }
+
 int pmHrandfieldCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc) {
   // if (argc > 4)
@@ -484,6 +514,7 @@ int pmHrandfieldCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   // }
   return REDISMODULE_OK;
 }
+
 int pmHscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return REDISMODULE_OK;
 }

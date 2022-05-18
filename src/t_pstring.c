@@ -294,7 +294,7 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (s != Ok && s != NotFound) {
       return RedisModule_ReplyWithError(ctx, "MGET KVDKGet Return Err");
     } else if (s == NotFound) {
-      RedisModule_ReplyWithStringBuffer(ctx, "(nil)", 5);
+      RedisModule_ReplyWithNull(ctx);
     } else {
       RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
       free(val_str);
