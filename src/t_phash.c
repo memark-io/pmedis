@@ -459,62 +459,161 @@ int pmHexistsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return RedisModule_ReplyWithLongLong(ctx, 1);
 }
 
+/*
+ *  TODO: optimizing random function to meet O(1) time complexity for each ops.
+ */
+
 int pmHrandfieldCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc) {
-  // if (argc > 4)
-  //   return RedisModule_WrongArity(ctx);
-  // long long count = 0;
-  // int with_value;
-  // int with_count = 0;
-  // if (argc > 2)
-  // {
-  //   size_t withvalue_len;
-  //   if (RedisModule_StringToLongLong(argv[2], &count) != REDISMODULE_OK) {
-  //     return RedisModule_ReplyWithError(ctx, "ERR value is not an integer or
-  //     out of range");
-  //   }
-  //   with_count = 1;
-  //   if (argc > 3)
-  //   {
-  //     const char * withvalue_str = RedisModule_StringPtrLen(argv[3],
-  //     &withvalue_len); if ((memcmp(withvalue_str, "WITHVALUES",
-  //     withvalue_len) == 0) || (memcmp(withvalue_str, "withvalues",
-  //     withvalue_len) == 0))
-  //     /* Simply use memcpy to check if provided arg is "WITHVALUES" or
-  //     "withvalues" for now,
-  //      * should specify this when creating command */
-  //     {
-  //       with_value = 1;
-  //     } else
-  //     {
-  //       return RedisModule_ReplyWithError(ctx, "ERR syntax error");
-  //     }
-  //   }
-  // }
-  // size_t key_len, hash_sz;
-  // const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  // KVDKStatus s = KVDKHashLength(engine, key_str, key_len, &hash_sz);
-  // if (s != Ok)
-  // {
-  //   if (with_count)
-  //   {
-  //     return RedisModule_ReplyWithEmptyArray(ctx);
-  //   } else
-  //   {
-  //     return RedisModule_ReplyWithNull(ctx);
-  //   }
-  // }
-  // if (!with_count) {
-  //   size_t rand_pos = (rand()+rand()) % hash_sz;
-  //   KVDKHashIterator * iter = KVDKHashIteratorCreate(engine, key_str,
-  //   key_len);
-  // } else
-  // {
+  if (argc > 4) return RedisModule_WrongArity(ctx);
+  long long count = 0;
+  int with_value = 0;
+  int with_count = 0;
+  char *field;
+  size_t field_len;
+  char *val;
+  size_t val_len;
+  size_t rand_pos;
+  if (argc > 2) {
+    size_t withvalue_len;
+    if (RedisModule_StringToLongLong(argv[2], &count) != REDISMODULE_OK) {
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is not an integer or out of range");
+    }
+    with_count = 1;
+    if (argc > 3) {
+      const char *withvalue_str =
+          RedisModule_StringPtrLen(argv[3], &withvalue_len);
 
-  // }
+      /* Simply use memcpy to check if provided arg is "WITHVALUES" or
+       * "withvalues" for now,
+       * should specify this when creating command */
+      if (strcasecmp(withvalue_str, "withvalues") == 0) {
+        with_value = 1;
+      } else {
+        return RedisModule_ReplyWithError(ctx, "ERR syntax error");
+      }
+    }
+  }
+  size_t key_len, hash_sz;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKStatus s = KVDKHashLength(engine, key_str, key_len, &hash_sz);
+  if (s != Ok) {
+    if (with_count) {
+      return RedisModule_ReplyWithEmptyArray(ctx);
+    } else {
+      return RedisModule_ReplyWithNull(ctx);
+    }
+  }
+
+  if (!with_count) {
+    /* only return 1 random field */
+    /* TODO: random strategy can be optimized for single random number */
+    rand_pos = (rand()) % hash_sz;
+    KVDKHashIterator *iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+    KVDKHashIteratorSeekToFirst(iter);
+    long long count = 0;
+
+    for (size_t i = 0; i < rand_pos; ++i) {
+      assert(KVDKHashIteratorIsValid(iter));
+      KVDKHashIteratorNext(iter);
+    }
+    KVDKHashIteratorGetKey(iter, &field, &field_len);
+    RedisModule_ReplyWithStringBuffer(ctx, field, field_len);
+    free(field);
+    KVDKHashIteratorDestroy(iter);
+  } else {
+    /* return multiple field */
+    /* TODO:  when count !=0, random strategy can be optimized
+     * currently a negative count has the same behavior as a positive count.
+     */
+    if (count >= 0) {
+      /* return distinct fields */
+      rand_pos = (rand()) % hash_sz;
+      if (rand_pos + count > hash_sz) {
+        if (count >= hash_sz) {
+          count = hash_sz;
+          rand_pos = 0;
+        } else {
+          rand_pos = hash_sz - count;
+        }
+      }
+    } else {
+      /* return random fields, same field can be returned multiple times. */
+      count = -count;
+      if (rand_pos + count > hash_sz) {
+        if (count >= hash_sz) {
+          count = hash_sz;
+          rand_pos = 0;
+        } else {
+          rand_pos = hash_sz - count;
+        }
+      }
+    }
+    // RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+    if (!with_value) {
+      RedisModule_ReplyWithArray(ctx, count);
+    } else {
+      RedisModule_ReplyWithArray(ctx, count * 2);
+    }
+    KVDKHashIterator *iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+    KVDKHashIteratorSeekToFirst(iter);
+    for (size_t i = 0; i < rand_pos; ++i) {
+      assert(KVDKHashIteratorIsValid(iter));
+      KVDKHashIteratorNext(iter);
+    }
+    for (size_t i = 0; i < count; ++i) {
+      assert(KVDKHashIteratorIsValid(iter));
+      KVDKHashIteratorGetKey(iter, &field, &field_len);
+      RedisModule_ReplyWithStringBuffer(ctx, field, field_len);
+      free(field);
+      if (with_value) {
+        KVDKHashIteratorGetValue(iter, &val, &val_len);
+        RedisModule_ReplyWithStringBuffer(ctx, val, val_len);
+        free(val);
+      }
+      KVDKHashIteratorNext(iter);
+    }
+    // RedisModule_ReplySetArrayLength(ctx, count);
+    KVDKHashIteratorDestroy(iter);
+  }
   return REDISMODULE_OK;
 }
-
+/*
+ *  Currently hscan return all the elements
+ *  TODO: not support cursor (future work)
+ *  TODO: not support match (future work)
+ */
 int pmHscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 3) return RedisModule_WrongArity(ctx);
+  size_t key_len, hash_sz;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKStatus s = KVDKHashLength(engine, key_str, key_len, &hash_sz);
+  if ((s != Ok) || (hash_sz == 0)) {
+    return RedisModule_ReplyWithEmptyArray(ctx);
+  }
+  KVDKHashIterator *iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  RedisModule_ReplyWithArray(ctx, 2);
+  RedisModule_ReplyWithSimpleString(ctx, "0");
+  RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+  KVDKHashIteratorSeekToFirst(iter);
+  long long count = 0;
+  while (KVDKHashIteratorIsValid(iter)) {
+    char *field;
+    size_t field_len;
+    KVDKHashIteratorGetKey(iter, &field, &field_len);
+    RedisModule_ReplyWithStringBuffer(ctx, field, field_len);
+    count++;
+    free(field);
+    char *val;
+    size_t val_len;
+    KVDKHashIteratorGetValue(iter, &val, &val_len);
+    RedisModule_ReplyWithStringBuffer(ctx, val, val_len);
+    count++;
+    free(val);
+    KVDKHashIteratorNext(iter);
+  }
+  RedisModule_ReplySetArrayLength(ctx, count);
+  KVDKHashIteratorDestroy(iter);
   return REDISMODULE_OK;
 }
