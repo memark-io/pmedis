@@ -8,6 +8,13 @@ int pmRpushCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     size_t val_len;
     const char *val = RedisModule_StringPtrLen(argv[i + 2], &val_len);
     KVDKStatus s = KVDKListPushBack(engine, key_str, key_len, val, val_len);
+    if (s == NotFound) {
+      s = KVDKListCreate(engine, key_str, key_len);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(ctx, "KVDKListCreate ERR");
+      }
+      s = KVDKListPushBack(engine, key_str, key_len, val, val_len);
+    }
     if (s != Ok) {
       RedisModule_ReplyWithError(ctx, "RPUSH error");
       return REDISMODULE_OK;
@@ -30,6 +37,13 @@ int pmLpushCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     size_t val_len;
     const char *val = RedisModule_StringPtrLen(argv[i + 2], &val_len);
     KVDKStatus s = KVDKListPushFront(engine, key_str, key_len, val, val_len);
+    if (s == NotFound) {
+      s = KVDKListCreate(engine, key_str, key_len);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(ctx, "KVDKListCreate ERR");
+      }
+      s = KVDKListPushFront(engine, key_str, key_len, val, val_len);
+    }
     if (s != Ok) {
       RedisModule_ReplyWithError(ctx, "LPUSH error");
       return REDISMODULE_OK;
@@ -67,15 +81,76 @@ int pmLpushxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 }
 
 int pmLinsertCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  // TODO
   if (argc != 5) return RedisModule_WrongArity(ctx);
-  size_t key_len, list_sz;
+  size_t key_len, list_sz, insertFrom_len, pivot_len, target_len;
+  int where;
+  int inserted = 0;
+  char *val;
+  size_t val_len;
+  KVDKStatus s;
+
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  KVDKStatus s = KVDKListLength(engine, key_str, key_len, &list_sz);
-  if (s != Ok) {
-    return RedisModule_ReplyWithNull(ctx);
+  const char *insertFrom_str =
+      RedisModule_StringPtrLen(argv[2], &insertFrom_len);
+
+  if (strcasecmp(insertFrom_str, "after") == 0) {
+    where = LIST_TAIL;
+  } else if (strcasecmp(insertFrom_str, "before") == 0) {
+    where = LIST_HEAD;
+  } else {
+    return RedisModule_ReplyWithError(
+        ctx, "ERR PM.LINSERT expect BEFORE or AFTER command here.");
   }
-  return REDISMODULE_OK;
+  const char *pivot_str = RedisModule_StringPtrLen(argv[3], &pivot_len);
+  const char *target_str = RedisModule_StringPtrLen(argv[4], &target_len);
+
+  if (target_len > LIST_MAX_ITEM_SIZE) {
+    return RedisModule_ReplyWithError(ctx, "Element too large");
+  }
+
+  // add by cc
+  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  while (KVDKListIteratorIsValid(iter)) {
+    KVDKListIteratorGetValue(iter, &val, &val_len);
+    if ((val_len == pivot_len) && (0 == memcmp(pivot_str, val, val_len))) {
+      if (where == LIST_TAIL) {
+        s = KVDKListInsertAfter(engine, iter, target_str, target_len);
+        if (s != Ok) {
+          free(val);
+          KVDKListIteratorDestroy(iter);
+          return RedisModule_ReplyWithError(ctx, "PM.LINSERT insert after ERR");
+        }
+        inserted = 1;
+        break;
+      } else if (where == LIST_HEAD) {
+        s = KVDKListInsertBefore(engine, iter, target_str, target_len);
+        if (s != Ok) {
+          free(val);
+          KVDKListIteratorDestroy(iter);
+          return RedisModule_ReplyWithError(ctx,
+                                            "PM.LINSERT insert before ERR");
+        }
+        inserted = 1;
+        break;
+      } else {
+        free(val);
+        KVDKListIteratorDestroy(iter);
+        return RedisModule_ReplyWithError(ctx, "PM.LINSERT ERR");
+      }
+    }
+    free(val);
+    KVDKListIteratorNext(iter);
+  }
+  free(val);
+  KVDKListIteratorDestroy(iter);
+  if (inserted) {
+    KVDKStatus s = KVDKListLength(engine, key_str, key_len, &list_sz);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, "PM.LINSERT Get list length ERR");
+    }
+    return RedisModule_ReplyWithLongLong(ctx, list_sz);
+  }
+  return RedisModule_ReplyWithLongLong(ctx, -1);
 }
 
 int pmRpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {

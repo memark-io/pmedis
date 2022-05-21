@@ -40,6 +40,12 @@
 #define UNIT_SECONDS 0
 #define UNIT_MILLISECONDS 1
 
+/* List related stuff */
+#define LIST_HEAD 0
+#define LIST_TAIL 1
+
+#define LIST_MAX_ITEM_SIZE ((1ull << 32) - 1024)
+
 /* long double to string convertion options */
 typedef enum {
   LD_STR_AUTO,  /* %.17Lg */
