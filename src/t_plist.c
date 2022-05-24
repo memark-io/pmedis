@@ -121,6 +121,7 @@ int pmLinsertCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
           return RedisModule_ReplyWithError(ctx, "PM.LINSERT insert after ERR");
         }
         inserted = 1;
+        free(val);
         break;
       } else if (where == LIST_HEAD) {
         s = KVDKListInsertBefore(engine, iter, target_str, target_len);
@@ -131,6 +132,7 @@ int pmLinsertCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
                                             "PM.LINSERT insert before ERR");
         }
         inserted = 1;
+        free(val);
         break;
       } else {
         free(val);
@@ -141,7 +143,6 @@ int pmLinsertCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     free(val);
     KVDKListIteratorNext(iter);
   }
-  free(val);
   KVDKListIteratorDestroy(iter);
   if (inserted) {
     KVDKStatus s = KVDKListLength(engine, key_str, key_len, &list_sz);
