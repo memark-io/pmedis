@@ -440,8 +440,63 @@ int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 int pmLremCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   // TODO
   if (argc != 4) return RedisModule_WrongArity(ctx);
+  size_t key_len, target_len;
+  long long count, del_count = 0;
+  KVDKStatus s;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  if (RedisModule_StringToLongLong(argv[2], &count) != REDISMODULE_OK) {
+    return RedisModule_ReplyWithNull(ctx);
+  }
 
-  return REDISMODULE_OK;
+  const char *target_str = RedisModule_StringPtrLen(argv[3], &target_len);
+  if (target_len > LIST_MAX_ITEM_SIZE) {
+    return RedisModule_ReplyWithError(ctx, "Element too large");
+  }
+
+  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  if (iter == NULL) {
+    return RedisModule_ReplyWithLongLong(ctx, del_count);
+  }
+  if (count < 0) {
+    count = -count;
+    for (int i = 0; i < count; ++i) {
+      KVDKListIteratorSeekToLastElem(iter, target_str, target_len);
+      if (KVDKListIteratorIsValid(iter)) {
+        s = KVDKListErase(engine, iter);
+        if (s != Ok) {
+          KVDKListIteratorDestroy(iter);
+          return RedisModule_ReplyWithError(ctx, "ERR KVDKListErase failed");
+        }
+        ++del_count;
+      }
+    }
+  } else if (count > 0) {
+    for (int i = 0; i < count; ++i) {
+      KVDKListIteratorSeekToFirstElem(iter, target_str, target_len);
+      if (KVDKListIteratorIsValid(iter)) {
+        s = KVDKListErase(engine, iter);
+        if (s != Ok) {
+          KVDKListIteratorDestroy(iter);
+          return RedisModule_ReplyWithError(ctx, "ERR KVDKListErase failed");
+        }
+        ++del_count;
+      }
+    }
+  } else {
+    // remove all matched items
+    KVDKListIteratorSeekToFirstElem(iter, target_str, target_len);
+    while (KVDKListIteratorIsValid(iter)) {
+      s = KVDKListErase(engine, iter);
+      if (s != Ok) {
+        KVDKListIteratorDestroy(iter);
+        return RedisModule_ReplyWithError(ctx, "ERR KVDKListErase failed");
+      }
+      ++del_count;
+      KVDKListIteratorSeekToFirstElem(iter, target_str, target_len);
+    }
+  }
+
+  return RedisModule_ReplyWithLongLong(ctx, del_count);
 }
 
 int pmRpoplpushCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
