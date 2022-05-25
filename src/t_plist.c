@@ -432,14 +432,13 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKListIteratorDestroy(iter);
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
-
+// TODO:
 int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return RedisModule_ReplyWithLongLong(ctx, RAND_MAX);
   ;
 }
 
 int pmLremCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  // TODO
   if (argc != 4) return RedisModule_WrongArity(ctx);
   size_t key_len, target_len;
   long long count, del_count = 0;
@@ -504,6 +503,80 @@ int pmRpoplpushCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                        int argc) {
   return REDISMODULE_OK;
 }
+
+int getListPosition(RedisModuleCtx *ctx, const RedisModuleString *str,
+                    int *position) {
+  size_t pos_len;
+  const char *pos_str = RedisModule_StringPtrLen(str, &pos_len);
+
+  if (strcasecmp(pos_str, "right") == 0) {
+    *position = LIST_TAIL;
+  } else if (strcasecmp(pos_str, "left") == 0) {
+    *position = LIST_HEAD;
+  } else {
+    RedisModule_ReplyWithError(ctx, "ERR expect LEFT or RIGHT command here.");
+    return C_ERR;
+  }
+  return C_OK;
+}
+// TODO: wait for KVDK to support atomicity
 int pmLmoveCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  return REDISMODULE_OK;
+  if (argc != 5) return RedisModule_WrongArity(ctx);
+  KVDKStatus s;
+  int wherefrom, whereto;
+  size_t l1_len, l2_len;
+  const char *l1_str = RedisModule_StringPtrLen(argv[1], &l1_len);
+  const char *l2_str = RedisModule_StringPtrLen(argv[2], &l2_len);
+  if (C_OK != getListPosition(ctx, argv[3], &wherefrom)) {
+    return REDISMODULE_ERR;
+  }
+  if (C_OK != getListPosition(ctx, argv[4], &whereto)) {
+    return REDISMODULE_ERR;
+  }
+  KVDKListIterator *l1_iter = KVDKListIteratorCreate(engine, l1_str, l1_len);
+  if (l1_iter == NULL) {
+    return RedisModule_ReplyWithNull(ctx);
+  }
+  if (wherefrom == LIST_HEAD) {
+    KVDKListIteratorSeekToFirst(l1_iter);
+  } else {
+    KVDKListIteratorSeekToLast(l1_iter);
+  }
+
+  char *l1_val_str;
+  size_t l1_val_len;
+  KVDKListIteratorGetValue(l1_iter, &l1_val_str, &l1_val_len);
+
+  s = KVDKListErase(engine, l1_iter);
+  if (s != Ok) {
+    KVDKListIteratorDestroy(l1_iter);
+    return RedisModule_ReplyWithError(ctx, "ERR KVDKListErase failed");
+  }
+
+  KVDKListIterator *l2_iter = KVDKListIteratorCreate(engine, l2_str, l2_len);
+  if (l2_iter == NULL) {
+    s = KVDKListCreate(engine, l2_str, l2_len);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(ctx, "KVDKListCreate ERR");
+    }
+    l2_iter = KVDKListIteratorCreate(engine, l2_str, l2_len);
+  }
+  if (whereto == LIST_HEAD) {
+    KVDKListIteratorSeekToFirst(l2_iter);
+    s = KVDKListInsertBefore(engine, l2_iter, l1_val_str, l1_val_len);
+    if (s != Ok) {
+      free(l1_val_str);
+      KVDKListIteratorDestroy(l2_iter);
+      return RedisModule_ReplyWithError(ctx, "PM.LMOVE insert ERR");
+    }
+  } else {
+    KVDKListIteratorSeekToLast(l2_iter);
+    s = KVDKListInsertAfter(engine, l2_iter, l1_val_str, l1_val_len);
+    if (s != Ok) {
+      free(l1_val_str);
+      KVDKListIteratorDestroy(l2_iter);
+      return RedisModule_ReplyWithError(ctx, "PM.LMOVE insert ERR");
+    }
+  }
+  return RedisModule_ReplyWithStringBuffer(ctx, l1_val_str, l1_val_len);
 }
