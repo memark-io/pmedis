@@ -432,10 +432,140 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKListIteratorDestroy(iter);
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
-// TODO:
+
+/* LPOS key element [RANK rank] [COUNT num-matches] [MAXLEN len]
+ *
+ * The "rank" is the position of the match, so if it is 1, the first match
+ * is returned, if it is 2 the second match is returned and so forth.
+ * It is 1 by default. If negative has the same meaning but the search is
+ * performed starting from the end of the list.
+ *
+ * If COUNT is given, instead of returning the single element, a list of
+ * all the matching elements up to "num-matches" are returned. COUNT can
+ * be combiled with RANK in order to returning only the element starting
+ * from the Nth. If COUNT is zero, all the matching elements are returned.
+ *
+ * MAXLEN tells the command to scan a max of len elements. If zero (the
+ * default), all the elements in the list are scanned if needed.
+ *
+ * The returned elements indexes are always referring to what LINDEX
+ * would return. So first element from head is 0, and so forth. */
 int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  return RedisModule_ReplyWithLongLong(ctx, RAND_MAX);
-  ;
+  int direction = LIST_TAIL;
+  long long rank = 1, count = -1, maxlen = 0; /* Count -1: option not given. */
+
+  size_t key_len, pivot_len, ops_len, llen;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+
+  const char *pivot_str = RedisModule_StringPtrLen(argv[2], &pivot_len);
+  if (pivot_len > LIST_MAX_ITEM_SIZE) {
+    return RedisModule_ReplyWithError(ctx, "Element too large");
+  }
+  /* Parse the optional arguments. */
+  for (int j = 3; j < argc; j++) {
+    const char *ops_str = RedisModule_StringPtrLen(argv[j], &ops_len);
+    int moreargs = (argc - 1) - j;
+    if (!strcasecmp(ops_str, "RANK") && moreargs) {
+      j++;
+      if (RedisModule_StringToLongLong(argv[j], &rank) != REDISMODULE_OK) {
+        return RedisModule_ReplyWithError(ctx, "RANK is not a number");
+      }
+      if (rank == 0) {
+        return RedisModule_ReplyWithError(
+            ctx,
+            "RANK can't be zero: use 1 to start from "
+            "the first match, 2 from the second, ...");
+      }
+    } else if (!strcasecmp(ops_str, "COUNT") && moreargs) {
+      j++;
+      if (RedisModule_StringToLongLong(argv[j], &count) != REDISMODULE_OK) {
+        return RedisModule_ReplyWithError(ctx, "count is not a number");
+      }
+      if (count < 0) {
+        return RedisModule_ReplyWithError(ctx, "COUNT can't be negative");
+      }
+    } else if (!strcasecmp(ops_str, "MAXLEN") && moreargs) {
+      j++;
+      if (RedisModule_StringToLongLong(argv[j], &maxlen) != REDISMODULE_OK) {
+        return RedisModule_ReplyWithError(ctx, "MAXLEN is not a number");
+      }
+      if (maxlen < 0) {
+        return RedisModule_ReplyWithError(ctx, "MAXLEN can't be negative");
+      }
+    } else {
+      return RedisModule_ReplyWithError(ctx, "PM.LPOS Option ERR");
+    }
+  }
+  /* A negative rank means start from the tail to head. */
+  if (rank < 0) {
+    rank = -rank;
+    direction = LIST_HEAD;
+  }
+  /* We return NULL or an empty array if there is no such key (or
+   * if we find no matches, depending on the presence of the COUNT option. */
+  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  if (iter == NULL) {
+    if (count != -1) {
+      return RedisModule_ReplyWithEmptyArray(ctx);
+    } else {
+      return RedisModule_ReplyWithNull(ctx);
+    }
+  }
+
+  /* If we got the COUNT option, prepare to emit an array. */
+  if (count != -1) {
+    RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+  }
+
+  /* Seek the element. */
+  KVDKStatus s = KVDKListLength(engine, key_str, key_len, &llen);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, "cannot get the size of the list");
+  }
+  direction == LIST_HEAD ? KVDKListIteratorSeekToLast(iter)
+                         : KVDKListIteratorSeekToFirst(iter);
+  long long index = 0, matches = 0, matchindex = -1, arraylen = 0;
+  size_t val_len;
+  char *val_str;
+  while (KVDKListIteratorIsValid(iter) && (maxlen == 0 || index < maxlen)) {
+    KVDKListIteratorGetValue(iter, &val_str, &val_len);
+    if ((val_len == pivot_len) && (0 == memcmp(pivot_str, val_str, val_len))) {
+      ++matches;
+      matchindex = (direction == LIST_TAIL) ? index : llen - index - 1;
+      if (matches >= rank) {
+        if (count != -1) {
+          ++arraylen;
+          RedisModule_ReplyWithLongLong(ctx, matchindex);
+          if (count && matches - rank + 1 >= count) {
+            free(val_str);
+            break;
+          }
+        } else {
+          free(val_str);
+          break;
+        }
+      }
+    }
+    direction == LIST_HEAD ? KVDKListIteratorPrev(iter)
+                           : KVDKListIteratorNext(iter);
+    free(val_str);
+    index++;
+    matchindex = -1; /* Remember if we exit the loop without a match. */
+  }
+  KVDKListIteratorDestroy(iter);
+
+  /* Reply to the client. Note that arraylenptr is not NULL only if
+   * the COUNT option was selected. */
+  if (count != -1) {
+    RedisModule_ReplySetArrayLength(ctx, arraylen);
+  } else {
+    if (matchindex != -1) {
+      RedisModule_ReplyWithLongLong(ctx, matchindex);
+    } else {
+      RedisModule_ReplyWithNull(ctx);
+    }
+  }
+  return REDISMODULE_OK;
 }
 
 int pmLremCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
