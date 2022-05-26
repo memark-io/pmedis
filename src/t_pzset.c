@@ -41,7 +41,7 @@ int pmZaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
     EncodeScoreKey(score, member_str, member_len, &score_key, &score_key_len);
     EncodeStringKey(key_str, key_len, member_str, member_len, &string_key,
                     &string_key_len);
-    s = KVDKSortedSet(engine, key_str, key_len, score_key, score_key_len, "",
+    s = KVDKSortedPut(engine, key_str, key_len, score_key, score_key_len, "",
                       0);
     if (s == NotFound) {
       KVDKSortedCollectionConfigs* s_config =
@@ -49,9 +49,9 @@ int pmZaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
       KVDKSetSortedCollectionConfigs(
           s_config, comp_name, strlen(comp_name),
           0 /*we do not need hash index for score part*/);
-      s = KVDKCreateSortedCollection(engine, key_str, key_len, s_config);
+      s = KVDKSortedCreate(engine, key_str, key_len, s_config);
       if (s == Ok) {
-        s = KVDKSortedSet(engine, key_str, key_len, score_key, score_key_len,
+        s = KVDKSortedPut(engine, key_str, key_len, score_key, score_key_len,
                           "", 0);
       }
       KVDKDestroySortedCollectionConfigs(s_config);
@@ -59,7 +59,7 @@ int pmZaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
 
     if (s == Ok) {
       KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
-      s = KVDKSet(engine, string_key, string_key_len, (char*)&score,
+      s = KVDKPut(engine, string_key, string_key_len, (char*)&score,
                   sizeof(int64_t), write_option);
       KVDKDestroyWriteOptions(write_option);
       created++;

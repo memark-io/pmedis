@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include "kvdk/engine.h"
 #include "redismodule.h"
 #include "util.h"
+#include "util_redis.h"
 
 #define PMEM_FILE_SIZE 1 << 30
 #define HASH_BUCKET_NUM 1 << 27
@@ -38,9 +40,24 @@ typedef struct {
 } HSetArgs;
 
 typedef struct {
-  int64_t incr_by;
-  int64_t result;
+  size_t ret; /*1: exists; 0: not exists */
+} HDelArgs;
+
+typedef struct {
+  long double ld_incr_by;
+  long double ld_result;
+  long long ll_incr_by;
+  long long ll_result;
+  rmw_err_msg err_no;
 } IncNArgs;
+
+typedef struct {
+  const char *val_str;
+  size_t val_len;
+  long long ll_offset;
+  long long ll_strlen_after_result;
+  rmw_err_msg err_no;
+} SetRangeArgs;
 
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
@@ -82,10 +99,16 @@ extern int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc);
 extern int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                           int argc);
+extern int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                             int argc);
 extern int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
 extern int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                         int argc);
+extern int pmGetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                             int argc);
+extern int pmGetsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
 extern int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
 extern int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,

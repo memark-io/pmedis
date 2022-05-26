@@ -135,6 +135,13 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.msetnx", pmMsetnxCommand,
                                 "write deny-oom", 1, -1, 2) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getrange", pmGetrangeCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.getset", pmGetsetCommand,
+                                "write deny-oom fast", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.getdel", pmGetdelCommand, "write fast",
                                 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
@@ -150,6 +157,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.setnx", pmSetnxCommand,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.setrange", pmSetrangeCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.setex", pmSetexCommand,
                                 "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
@@ -175,10 +185,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  //   if (RedisModule_CreateCommand(ctx, "pm.linsert", pmLinsertCommand,
-  //                                 "write deny-oom", 1, 1, 1) ==
-  //                                 REDISMODULE_ERR)
-  //     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.linsert", pmLinsertCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.rpop", pmRpopCommand, "write fast", 1,
                                 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
@@ -226,10 +235,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   //                                 "write deny-oom", 1, 2, 1) ==
   //                                 REDISMODULE_ERR)
   //     return REDISMODULE_ERR;
-  //   if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
-  //                                 "write deny-oom", 1, 2, 1) ==
-  //                                 REDISMODULE_ERR)
-  //     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.lmove", pmLmoveCommand,
+                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   RedisModule_Log(ctx, "notice", "list cmd created");
   // Hash Commands
   if (RedisModule_CreateCommand(ctx, "pm.hset", pmHsetCommand,
