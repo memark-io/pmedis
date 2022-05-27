@@ -30,6 +30,14 @@ int pmSaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
     field_str = RedisModule_StringPtrLen(argv[i], &field_len);
     s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, SaddFunc,
                        &args, NULL);
+    if (s == NotFound) {
+      s = KVDKHashCreate(engine, key_str, key_len);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(ctx, "ERR PM.SADD create err");
+      }
+      s = KVDKHashModify(engine, key_str, key_len, field_str, field_len,
+                         SaddFunc, &args, NULL);
+    }
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
     }
@@ -42,7 +50,13 @@ int pmScardCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   if (argc != 2) {
     return RedisModule_WrongArity(ctx);
   }
-  return REDISMODULE_OK;
+  size_t key_len, hash_sz;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKStatus s = KVDKHashLength(engine, key_str, key_len, &hash_sz);
+  if (s != Ok) {
+    return RedisModule_ReplyWithLongLong(ctx, 0);
+  }
+  return RedisModule_ReplyWithLongLong(ctx, hash_sz);
 }
 
 int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
@@ -54,6 +68,21 @@ int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
 
 int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                         int argc) {
+  // if (argc !=2) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSinterCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  // if (argc !=2) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSinterstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
   // if (argc !=2) {
   //   return RedisModule_WrongArity(ctx);
   // }
