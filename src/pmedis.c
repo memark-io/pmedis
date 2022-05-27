@@ -301,8 +301,54 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.scard", pmScardCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sdiff", pmSdiffCommand, "readonly", 1,
+                                -1,
+                                1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sdiffstore", pmSdiffstoreCommand,
+                                "write deny-oom", 1, -1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sinter", pmSinterCommand, "readonly",
+                                1, -1,
+                                1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sinterstore", pmSinterstoreCommand,
+                                "write deny-oom", 1, -1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sismember", pmSismemberCommand,
+                                "readonly fast", 1, 1,
+                                1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.smembers", pmSmembersCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.smismember", pmSmismemberCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.smovemember", pmSmoveCommand,
+                                "write fast", 1, 2, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.spop", pmSpopCommand, "readonly fast",
                                 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.srandmember", pmSrandmemberCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.srem", pmSremCommand, "write fast", 1,
+                                1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sscan", pmSscanCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sunion", pmSunionCommand, "readonly",
+                                1, -1, 1) == REDISMODULE_ERR)  // to-sort
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.sunionstore", pmSunionstoreCommand,
+                                "write deny-oom", 1, -1,
+                                1) == REDISMODULE_ERR)  // to-sort
     return REDISMODULE_ERR;
   // ZSet Commands
   if (RedisModule_CreateCommand(ctx, "pm.zadd", pmZaddCommand,

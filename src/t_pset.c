@@ -37,6 +37,59 @@ int pmSaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, created);
 }
+
+int pmScardCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  // if (argc !=2) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                        int argc) {
+  // if (argc !=2) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                       int argc) {
+  if (argc != 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmSmembersCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmSmismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                        int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSmoveCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
 int pmSpopCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   long long maxCnt = 0;
   if ((argc != 3) && (argc != 2)) {
@@ -88,5 +141,42 @@ int pmSpopCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   }
   RedisModule_ReplySetArrayLength(ctx, cnt);
   KVDKHashIteratorDestroy(iter);
+  return REDISMODULE_OK;
+}
+
+int pmSrandmemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSremCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSscanCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSunionCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
+  return REDISMODULE_OK;
+}
+
+int pmSunionstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  // if (argc !=3) {
+  //   return RedisModule_WrongArity(ctx);
+  // }
   return REDISMODULE_OK;
 }

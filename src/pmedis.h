@@ -199,8 +199,36 @@ extern int pmHscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 // Set Commands
 extern int pmSaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
+extern int pmScardCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmSdiffCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmSdiffstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                               int argc);
+extern int pmSinterCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmSinterstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmSismemberCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                              int argc);
+extern int pmSmembersCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                             int argc);
+extern int pmSmismemberCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                               int argc);
+extern int pmSmoveCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
 extern int pmSpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
+extern int pmSrandmemberCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmSremCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmSscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmSunionCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmSunionstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
 // ZSet Commands
 extern int pmZaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
