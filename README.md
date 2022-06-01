@@ -57,32 +57,32 @@ Information above indicates PMedis is successfully loaded in the redis-server an
 
 ### 2.3 Connect to PMedis with ``redis-cli`` and try those commands
 ```
-$ redis-cli -p 46379
-127.0.0.1:46379> PM.SET pmedis success
+$ redis-cli -p 56379
+127.0.0.1:56379> PM.SET pmedis success
 OK
-127.0.0.1:46379> PM.GET pmedis
+127.0.0.1:56379> PM.GET pmedis
 "success"
-127.0.0.1:46379> PM.RPUSH pmlist "one" "two" "three"
+127.0.0.1:56379> PM.RPUSH pmlist "one" "two" "three"
 (integer) 3
-127.0.0.1:46379> PM.LPOP pmlist
+127.0.0.1:56379> PM.LPOP pmlist
 "one"
-127.0.0.1:46379> PM.LPOP pmlist
+127.0.0.1:56379> PM.LPOP pmlist
 "two"
-127.0.0.1:46379> PM.LLEN pmlist
+127.0.0.1:56379> PM.LLEN pmlist
 (integer) 1
-127.0.0.1:46379> PM.HSET pmhash aaa 111
+127.0.0.1:56379> PM.HSET pmhash aaa 111
 (integer) 1
-127.0.0.1:46379> PM.HSET pmhash bbb 222
+127.0.0.1:56379> PM.HSET pmhash bbb 222
 (integer) 1
-127.0.0.1:46379> PM.HGETALL pmhash
+127.0.0.1:56379> PM.HGETALL pmhash
 1) "bbb"
 2) "222"
 3) "aaa"
 4) "111"
-127.0.0.1:46379> PM.HKEYS pmhash
+127.0.0.1:56379> PM.HKEYS pmhash
 1) "bbb"
 2) "aaa"
-127.0.0.1:46379> PM.HINCRBY pmhash aaa 1
+127.0.0.1:56379> PM.HINCRBY pmhash aaa 1
 (integer) 112
 ...
 ```
