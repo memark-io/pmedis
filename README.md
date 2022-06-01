@@ -139,7 +139,7 @@ not connected> exit
 
 PMedis is developed by MemArk (https://memark.io/en), which is a tech community focusing on leveraging modern storage architecture for system enhancement. MemArk is led by 4Paradigm (https://www.4paradigm.com/) and other sponsors (such as Intel). Please join our community for:
 
-Chatting: For any feedback, suggestions, issues, and anything about using PMedis or other storage related topics, we strongly encourage you to join our interactive discussion channel at [Slack #pmedis-help](https://memarkworkspace.slack.com/archives/C03HVJF1KEY)
+Chatting: For any feedback, suggestions, issues, and anything about using PMedis or other storage related topics, we strongly encourage you to join our interactive discussion channel at [Slack #pmedis-help](https://join.slack.com/t/memarkworkspace/shared_invite/zt-19yyf6ho5-26zNkvWL_InZGE7IsVhizw)
 
 Development discussion: If you would like to formally report a bug or suggestion, please use the GitHub Issues; if you would like to propose a new feature for some discussion, or would like to start a pull request, please use the GitHub Discussions, and our developers will respond promptly.
 
