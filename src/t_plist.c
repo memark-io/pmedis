@@ -222,7 +222,7 @@ int pmLpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     for (int i = 0; i < count; i++) {
       char *val;
       size_t val_len;
-      s = KVDKListPopBack(engine, key_str, key_len, &val, &val_len);
+      s = KVDKListPopFront(engine, key_str, key_len, &val, &val_len);
       if (s != Ok) {
         return RedisModule_ReplyWithNull(ctx);
       }

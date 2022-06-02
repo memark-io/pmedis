@@ -38,7 +38,6 @@ cmake-build-*
 *.app
 
 # others
-*.dockerfile
 *.rdb
 
 build/
