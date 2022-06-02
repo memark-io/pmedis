@@ -433,23 +433,7 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
 
-/* LPOS key element [RANK rank] [COUNT num-matches] [MAXLEN len]
- *
- * The "rank" is the position of the match, so if it is 1, the first match
- * is returned, if it is 2 the second match is returned and so forth.
- * It is 1 by default. If negative has the same meaning but the search is
- * performed starting from the end of the list.
- *
- * If COUNT is given, instead of returning the single element, a list of
- * all the matching elements up to "num-matches" are returned. COUNT can
- * be combiled with RANK in order to returning only the element starting
- * from the Nth. If COUNT is zero, all the matching elements are returned.
- *
- * MAXLEN tells the command to scan a max of len elements. If zero (the
- * default), all the elements in the list are scanned if needed.
- *
- * The returned elements indexes are always referring to what LINDEX
- * would return. So first element from head is 0, and so forth. */
+/* LPOS key element [RANK rank] [COUNT num-matches] [MAXLEN len] */
 int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   int direction = LIST_TAIL;
   long long rank = 1, count = -1, maxlen = 0; /* Count -1: option not given. */
@@ -501,8 +485,7 @@ int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     rank = -rank;
     direction = LIST_HEAD;
   }
-  /* We return NULL or an empty array if there is no such key (or
-   * if we find no matches, depending on the presence of the COUNT option. */
+  /* We return NULL or an empty array if there is no such key */
   KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
   if (iter == NULL) {
     if (count != -1) {
@@ -550,12 +533,10 @@ int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
                            : KVDKListIteratorNext(iter);
     free(val_str);
     index++;
-    matchindex = -1; /* Remember if we exit the loop without a match. */
+    matchindex = -1; /* exit the loop without a match. */
   }
   KVDKListIteratorDestroy(iter);
 
-  /* Reply to the client. Note that arraylenptr is not NULL only if
-   * the COUNT option was selected. */
   if (count != -1) {
     RedisModule_ReplySetArrayLength(ctx, arraylen);
   } else {
