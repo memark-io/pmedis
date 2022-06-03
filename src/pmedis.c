@@ -1,63 +1,20 @@
-#include "pmedis.h"
-
 /*
-void PmSet_Task(RedisModuleBlockedClient *bc, RedisModuleString **argv,
-                int argc) {
-  RedisModuleCtx *ctx = RedisModule_GetThreadSafeContext(bc);
-  size_t key_len;
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  size_t val_len;
-  const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
+ * Copyright 2022 4Paradigm
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  KVDKStatus s = KVDKSet(engine, key_str, key_len, val_str, val_len);
-  if (s != Ok) {
-    RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-    goto err;
-  }
-  RedisModule_ReplyWithLongLong(ctx, 1);
-err:
-  RedisModule_FreeThreadSafeContext(ctx);
-  RedisModule_UnblockClient(bc, NULL);
-}
-
-void PmGet_Task(RedisModuleBlockedClient *bc, RedisModuleString **argv,
-                int argc) {
-  RedisModuleCtx *ctx = RedisModule_GetThreadSafeContext(bc);
-  size_t key_len;
-  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  size_t val_len;
-  char *val_str;
-  KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-  if (s != Ok && s != NotFound) {
-    RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-    goto err;
-  }
-  RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
-err:
-  RedisModule_FreeThreadSafeContext(ctx);
-  RedisModule_UnblockClient(bc, NULL);
-}
-
-int PmSetMT_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                         int argc) {
-  if (argc != 3) return RedisModule_WrongArity(ctx);
-  RedisModuleBlockedClient *bc =
-      RedisModule_BlockClient(ctx, NULL, NULL, NULL, 0);
-
-  thp_add(thp, (void *)&PmSet_Task, bc, argv, argc);
-  return REDISMODULE_OK;
-}
-
-int PmGetMT_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
-                         int argc) {
-  if (argc != 2) return RedisModule_WrongArity(ctx);
-  RedisModuleBlockedClient *bc =
-      RedisModule_BlockClient(ctx, NULL, NULL, NULL, 0);
-
-  thp_add(thp, (void *)&PmGet_Task, bc, argv, argc);
-  return REDISMODULE_OK;
-}
-*/
+#include "pmedis.h"
 
 int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                        int argc) {
@@ -239,6 +196,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   RedisModule_Log(ctx, "notice", "list cmd created");
+
   // Hash Commands
   if (RedisModule_CreateCommand(ctx, "pm.hset", pmHsetCommand,
                                 "write deny-oom fast", 1, 1,
