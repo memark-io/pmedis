@@ -116,7 +116,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
   RedisModuleKey* dstset = RedisModule_OpenKey(
       ctx, dstset_str, REDISMODULE_READ | REDISMODULE_WRITE);
-  
+
   if (op == SET_OP_UNION) {
     /* For union, just add all element of every set to temp dstset*/
     for (j = 0; j < setnum; ++j) {
@@ -220,7 +220,6 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     ++dst_count;
   }
   RedisModule_ZsetRangeStop(dstset);
-
 
   RedisModule_CloseKey(dstset);
   RedisModule_DeleteKey(dstset);
