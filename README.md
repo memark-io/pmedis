@@ -132,10 +132,19 @@ Have fun :)
 not connected> exit
 ```
 
-## 3. Roadmap
+## 3. Benchmark
+
+We did a simple performance benchmarking using redis-benchmark to compare PMedis and Redis with/without AOF on SSD. Figures below illustrate the throughput and latency of those commonly used commands on a single instance.
+
+<img src="./doc/throughput.png" width = "600" height = "" alt="throughput" align=center />
+<img src="./doc/latency.png" width = "600" height = "" alt="throughput" align=center />
+
+The numbers here are measured in our servers. You can refer to the [benchmark guide](./doc/benchmark.md) for more information about how to benchmark PMedis on your own environment.
+
+## 4. Roadmap
 ![roadmap](./doc/roadmap.png)
 
-## 4. Community
+## 5. Community
 
 PMedis is developed by MemArk (https://memark.io/en), which is a tech community focusing on leveraging modern storage architecture for system enhancement. MemArk is led by 4Paradigm (https://www.4paradigm.com/) and other sponsors (such as Intel). Please join our community for:
 
