@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 4Paradigm
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <sys/time.h>
 
 #include "pmedis.h"
@@ -99,7 +115,8 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   RedisModuleString* dstset_str =
       RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
   RedisModuleKey* dstset = RedisModule_OpenKey(
-      ctx, dstset_str, REDISMODULE_READ | REDISMODULE_WRITE);
+      ctx, dstset_str, REDISMODULE_READ|REDISMODULE_WRITE);
+  
   if (op == SET_OP_UNION) {
     /* For union, just add all element of every set to temp dstset*/
     for (j = 0; j < setnum; ++j) {
@@ -150,12 +167,10 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
             RedisModule_CreateString(ctx, field, field_len);
         if (0 == j) {
           int flags = REDISMODULE_ZADD_NX;
-          // TODO: bug is here
           int res = RedisModule_ZsetAdd(dstset, score, field_str, &flags);
-          // if(REDISMODULE_ZADD_ADDED == RedisModule_ZsetAdd(dstset, score,
-          // field_str, &flags)){
-          ++cardinality;
-          //}
+          if((flags & REDISMODULE_ZADD_ADDED) && (res == REDISMODULE_OK)){
+            ++cardinality;
+          }
           ++score;
         } else {
           int deleted;
@@ -206,8 +221,8 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   }
   RedisModule_ZsetRangeStop(dstset);
 
-  RedisModule_DeleteKey(dstset);
   RedisModule_CloseKey(dstset);
+  RedisModule_DeleteKey(dstset);
   RedisModule_FreeString(ctx, dstset_str);
 
   if (!dstkey) {
@@ -219,9 +234,8 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
 }
 
 int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  // return pmSunionDiffGenericCommand(ctx, argv+1, argc-1, NULL, 0,
-  // SET_OP_DIFF); return pmSunionDiffGenericCommand(ctx, argv, 1, argc-1, NULL,
-  // 0, SET_OP_DIFF);
+  return pmSunionDiffGenericCommand(ctx, argv+1, argc-1, NULL, 0, SET_OP_DIFF); 
+  // return pmSunionDiffGenericCommand(ctx, argv, 1, argc-1, NULL, 0, SET_OP_DIFF);
 }
 
 int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
