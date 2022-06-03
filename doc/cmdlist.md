@@ -2,8 +2,8 @@
 
 All the commands supported by PMedis are listed in the table below. Most of them have the same behavior as the vanilla Redis. For those that are slightly different to the vanilla one, the difference are highlighted in the description.
 
-| Command | Description |
-| :- | :- |
+| Command | Description | Known Issues |
+| :- | :- | :- |
 | PM.	APPEND	|	|
 | PM.	DECR	|	|
 | PM.	DECRBY	|	|
