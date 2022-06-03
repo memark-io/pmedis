@@ -1,4 +1,4 @@
-# PMedis
+# <img src="./doc/logo_transparent.png" width = "180" height = "" alt="throughput" align=center />PMedis
 A Redis module to provide support for storing Redis native data structures on Persistent Memory (PMem).
 ===
 ## 1. Introduction
