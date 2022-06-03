@@ -115,8 +115,8 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   RedisModuleString* dstset_str =
       RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
   RedisModuleKey* dstset = RedisModule_OpenKey(
-      ctx, dstset_str, REDISMODULE_READ|REDISMODULE_WRITE);
-  
+      ctx, dstset_str, REDISMODULE_READ | REDISMODULE_WRITE);
+
   if (op == SET_OP_UNION) {
     /* For union, just add all element of every set to temp dstset*/
     for (j = 0; j < setnum; ++j) {
@@ -168,7 +168,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
         if (0 == j) {
           int flags = REDISMODULE_ZADD_NX;
           int res = RedisModule_ZsetAdd(dstset, score, field_str, &flags);
-          if((flags & REDISMODULE_ZADD_ADDED) && (res == REDISMODULE_OK)){
+          if ((flags & REDISMODULE_ZADD_ADDED) && (res == REDISMODULE_OK)) {
             ++cardinality;
           }
           ++score;
@@ -234,8 +234,10 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
 }
 
 int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  return pmSunionDiffGenericCommand(ctx, argv+1, argc-1, NULL, 0, SET_OP_DIFF); 
-  // return pmSunionDiffGenericCommand(ctx, argv, 1, argc-1, NULL, 0, SET_OP_DIFF);
+  return pmSunionDiffGenericCommand(ctx, argv + 1, argc - 1, NULL, 0,
+                                    SET_OP_DIFF);
+  // return pmSunionDiffGenericCommand(ctx, argv, 1, argc-1, NULL, 0,
+  // SET_OP_DIFF);
 }
 
 int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,

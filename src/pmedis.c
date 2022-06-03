@@ -196,7 +196,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   RedisModule_Log(ctx, "notice", "list cmd created");
-  
+
   // Hash Commands
   if (RedisModule_CreateCommand(ctx, "pm.hset", pmHsetCommand,
                                 "write deny-oom fast", 1, 1,
