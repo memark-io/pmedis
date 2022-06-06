@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 4Paradigm
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "pmedis.h"
 
 #define MAINTAINER_INTERVAL 60
@@ -71,7 +87,7 @@ int thp_destroy(ThdPool_t *pool) {
 
   pool->shutdown = 1;
 
-  pthread_join(pool->tidMtner, NULL);
+  //   pthread_join(pool->tidMtner, NULL);
 
   for (i = 0; i < pool->nLiveThd; i++) {
     pthread_cond_broadcast(&(pool->cndNotEmpty));
@@ -232,7 +248,7 @@ ThdPool_t *thp_create(int nMinThd, int nMaxThd, int nMaxTask) {
       pthread_create(&(pool->tidWorkers[i]), NULL, worker_thd, (void *)pool);
       // thread pool->tidWorkers[i] started
     }
-    pthread_create(&(pool->tidMtner), NULL, maintainer_thd, (void *)pool);
+    // pthread_create(&(pool->tidMtner), NULL, maintainer_thd, (void *)pool);
     // maintainer_thd thread started
 
   } while (0);

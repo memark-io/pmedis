@@ -1,0 +1,183 @@
+--- redis-benchmark.c	2022-05-06 10:49:44.616446433 +0800
++++ redis-benchmark-pmedis.c	2022-05-06 10:49:12.222795608 +0800
+@@ -1635,7 +1635,7 @@
+     atomicGet(config.liveclients, liveclients);
+     atomicGet(config.requests_finished, requests_finished);
+     atomicGet(config.previous_requests_finished, previous_requests_finished);
+-    
++
+     if (liveclients == 0 && requests_finished != config.requests) {
+         fprintf(stderr,"All clients disconnected... aborting.\n");
+         exit(1);
+@@ -1850,42 +1850,63 @@
+             len = redisFormatCommand(&cmd,"SET key%s:__rand_int__ %s",tag,data);
+             benchmark("SET",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.SET key%s:__rand_int__ %s",tag,data);
++            benchmark("pm.SET",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("get")) {
+             len = redisFormatCommand(&cmd,"GET key%s:__rand_int__",tag);
+             benchmark("GET",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.GET key%s:__rand_int__",tag);
++            benchmark("pm.GET",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("incr")) {
+             len = redisFormatCommand(&cmd,"INCR counter%s:__rand_int__",tag);
+             benchmark("INCR",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.INCR counter%s:__rand_int__",tag);
++            benchmark("pm.INCR",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lpush")) {
+             len = redisFormatCommand(&cmd,"LPUSH mylist%s %s",tag,data);
+             benchmark("LPUSH",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LPUSH mylist%s %s",tag,data);
++            benchmark("pm.LPUSH",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("rpush")) {
+             len = redisFormatCommand(&cmd,"RPUSH mylist%s %s",tag,data);
+             benchmark("RPUSH",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.RPUSH mylist%s %s",tag,data);
++            benchmark("pm.RPUSH",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lpop")) {
+             len = redisFormatCommand(&cmd,"LPOP mylist%s",tag);
+             benchmark("LPOP",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LPOP mylist%s",tag);
++            benchmark("pm.LPOP",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("rpop")) {
+             len = redisFormatCommand(&cmd,"RPOP mylist%s",tag);
+             benchmark("RPOP",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.RPOP mylist%s",tag);
++            benchmark("pm.RPOP",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("sadd")) {
+@@ -1893,6 +1914,10 @@
+                 "SADD myset%s element:__rand_int__",tag);
+             benchmark("SADD",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,
++                "pm.SADD myset%s element:__rand_int__",tag);
++            benchmark("pm.SADD",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("hset")) {
+@@ -1900,12 +1925,19 @@
+                 "HSET myhash%s element:__rand_int__ %s",tag,data);
+             benchmark("HSET",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,
++                "pm.HSET myhash%s element:__rand_int__ %s",tag,data);
++            benchmark("pm.HSET",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("spop")) {
+             len = redisFormatCommand(&cmd,"SPOP myset%s",tag);
+             benchmark("SPOP",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.SPOP myset%s",tag);
++            benchmark("pm.SPOP",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("zadd")) {
+@@ -1915,12 +1947,19 @@
+                 "ZADD myzset%s %s element:__rand_int__",tag,score);
+             benchmark("ZADD",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,
++                "pm.ZADD myzset%s %s element:__rand_int__",tag,score);
++            benchmark("pm.ZADD",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("zpopmin")) {
+             len = redisFormatCommand(&cmd,"ZPOPMIN myzset%s",tag);
+             benchmark("ZPOPMIN",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.ZPOPMIN myzset%s",tag);
++            benchmark("pm.ZPOPMIN",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lrange") ||
+@@ -1932,30 +1971,45 @@
+             len = redisFormatCommand(&cmd,"LPUSH mylist%s %s",tag,data);
+             benchmark("LPUSH (needed to benchmark LRANGE)",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LPUSH mylist%s %s",tag,data);
++            benchmark("pm.LPUSH (needed to benchmark LRANGE)",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lrange") || test_is_selected("lrange_100")) {
+             len = redisFormatCommand(&cmd,"LRANGE mylist%s 0 99",tag);
+             benchmark("LRANGE_100 (first 100 elements)",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LRANGE mylist%s 0 99",tag);
++            benchmark("pm.LRANGE_100 (first 100 elements)",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lrange") || test_is_selected("lrange_300")) {
+             len = redisFormatCommand(&cmd,"LRANGE mylist%s 0 299",tag);
+             benchmark("LRANGE_300 (first 300 elements)",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LRANGE mylist%s 0 299",tag);
++            benchmark("pm.LRANGE_300 (first 300 elements)",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lrange") || test_is_selected("lrange_500")) {
+             len = redisFormatCommand(&cmd,"LRANGE mylist%s 0 499",tag);
+             benchmark("LRANGE_500 (first 500 elements)",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LRANGE mylist%s 0 499",tag);
++            benchmark("pm.LRANGE_500 (first 500 elements)",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("lrange") || test_is_selected("lrange_600")) {
+             len = redisFormatCommand(&cmd,"LRANGE mylist%s 0 599",tag);
+             benchmark("LRANGE_600 (first 600 elements)",cmd,len);
+             free(cmd);
++			len = redisFormatCommand(&cmd,"pm.LRANGE mylist%s 0 599",tag);
++            benchmark("pm.LRANGE_600 (first 600 elements)",cmd,len);
++            free(cmd);
+         }
+ 
+         if (test_is_selected("mset")) {
+@@ -1969,6 +2023,10 @@
+             len = redisFormatCommandArgv(&cmd,21,cmd_argv,NULL);
+             benchmark("MSET (10 keys)",cmd,len);
+             free(cmd);
++            cmd_argv[0] = "pm.MSET";
++			len = redisFormatCommandArgv(&cmd,21,cmd_argv,NULL);
++            benchmark("pm.MSET (10 keys)",cmd,len);
++            free(cmd);
+             sdsfree(key_placeholder);
+         }
+ 
