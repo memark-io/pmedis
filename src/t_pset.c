@@ -82,11 +82,8 @@ int pmScardCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
 #define SET_OP_INTER 2
 
 int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
-                               int setnum, char* dstkey, size_t dst_len,
+                               int setnum, const char* dstkey, size_t dst_len,
                                int op) {
-  // int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString
-  // **argv, int start, int setnum,
-  //                              char *dstkey, size_t dst_len, int op) {
   KVDKHashIterator** iter_sets =
       (KVDKHashIterator**)RedisModule_Alloc(sizeof(KVDKHashIterator*) * setnum);
   size_t key_len;
@@ -101,6 +98,11 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   /* return empty array if the first set is empty */
   if (op == SET_OP_DIFF && NULL == iter_sets[0]) {
     RedisModule_Free((void*)iter_sets);
+    for(j = 0; j<setnum; ++j){
+      if(NULL != iter_sets[j]){
+        KVDKHashIteratorDestroy(iter_sets[j]);
+      }
+    }
     if (dstkey != NULL) {
       KVDKHashDestroy(engine, dstkey, dst_len);
     }
@@ -116,7 +118,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
   RedisModuleKey* dstset = RedisModule_OpenKey(
       ctx, dstset_str, REDISMODULE_READ | REDISMODULE_WRITE);
-
+  
   if (op == SET_OP_UNION) {
     /* For union, just add all element of every set to temp dstset*/
     for (j = 0; j < setnum; ++j) {
@@ -189,12 +191,13 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       KVDKHashIteratorDestroy(iter);
     }
   }
-
+ 
   /* Output the content */
   if (!dstkey) {
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
   } else {
     // TODO: delete key no matter what kind of type
+    // TODO: wait for KVDK for type detect function
     s = KVDKHashDestroy(engine, dstkey, dst_len);
     s = KVDKHashCreate(engine, dstkey, dst_len);
   }
@@ -221,6 +224,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   }
   RedisModule_ZsetRangeStop(dstset);
 
+
   RedisModule_CloseKey(dstset);
   RedisModule_DeleteKey(dstset);
   RedisModule_FreeString(ctx, dstset_str);
@@ -234,18 +238,22 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
 }
 
 int pmSdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 2) {
+    return RedisModule_WrongArity(ctx);
+  }
   return pmSunionDiffGenericCommand(ctx, argv + 1, argc - 1, NULL, 0,
                                     SET_OP_DIFF);
-  // return pmSunionDiffGenericCommand(ctx, argv, 1, argc-1, NULL, 0,
-  // SET_OP_DIFF);
 }
 
 int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                         int argc) {
-  // if (argc !=2) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
-  return REDISMODULE_OK;
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  return pmSunionDiffGenericCommand(ctx, argv + 2, argc - 2, key_str, key_len,
+                                    SET_OP_DIFF);
 }
 
 int pmSinterCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
@@ -370,16 +378,20 @@ int pmSscanCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
 }
 
 int pmSunionCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  // if (argc !=3) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
-  return REDISMODULE_OK;
+  if (argc < 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return pmSunionDiffGenericCommand(ctx, argv + 1, argc - 1, NULL, 0,
+                                    SET_OP_UNION);
 }
 
 int pmSunionstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                          int argc) {
-  // if (argc !=3) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
-  return REDISMODULE_OK;
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  return pmSunionDiffGenericCommand(ctx, argv + 2, argc - 2, key_str, key_len,
+                                    SET_OP_UNION);
 }
