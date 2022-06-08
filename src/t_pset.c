@@ -383,11 +383,41 @@ int pmSrandmemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   return REDISMODULE_OK;
 }
 
+int SremFunc(char const* old_data, size_t old_len, char** new_data,
+             size_t* new_len, void* args) {
+  HDelArgs* my_args = (HDelArgs*)args;
+  if (old_data == NULL) {
+    assert(old_len == 0);
+    my_args->ret = 0;
+    return KVDK_MODIFY_NOOP;
+  } else {
+    my_args->ret = 1;
+    return KVDK_MODIFY_DELETE;
+  }
+}
+
 int pmSremCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  // if (argc !=3) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
-  return REDISMODULE_OK;
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  KVDKStatus s;
+  size_t key_len, deleted = 0;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  for (int i = 2; i < argc; ++i) {
+    size_t field_len;
+    const char* field_str = RedisModule_StringPtrLen(argv[i], &field_len);
+    HDelArgs args;
+    s = KVDKHashModify(engine, key_str, key_len, field_str, field_len, SremFunc,
+                       &args, NULL);
+    if (s == NotFound) {
+      continue;
+    }
+    if (s != Ok && s != NotFound) {
+      return RedisModule_ReplyWithError(ctx, "ERR KVDKHashModify");
+    }
+    deleted += args.ret;
+  }
+  return RedisModule_ReplyWithLongLong(ctx, deleted);
 }
 
 int pmSscanCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
