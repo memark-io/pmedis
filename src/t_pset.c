@@ -275,7 +275,35 @@ int pmSismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   if (argc != 3) {
     return RedisModule_WrongArity(ctx);
   }
-  return REDISMODULE_OK;
+  size_t key_len;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  size_t target_field_len;
+  const char* target_field_str =
+      RedisModule_StringPtrLen(argv[2], &target_field_len);
+
+  // TODO:
+  // do we need to check the behavior of the below case
+  // command: sismember mmmmmmm "3
+  // return:  Invalid argument(s)
+
+  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  if (NULL == iter) {
+    return RedisModule_ReplyWithLongLong(ctx, 0);
+  };
+  KVDKHashIteratorSeekToFirst(iter);
+  while (KVDKHashIteratorIsValid(iter)) {
+    char* field;
+    size_t field_len;
+    KVDKHashIteratorGetKey(iter, &field, &field_len);
+    if ((target_field_len == field_len) &&
+        (0 == memcmp(field, target_field_str, target_field_len))) {
+      KVDKHashIteratorDestroy(iter);
+      return RedisModule_ReplyWithLongLong(ctx, 1);
+    }
+    KVDKHashIteratorNext(iter);
+  }
+  KVDKHashIteratorDestroy(iter);
+  return RedisModule_ReplyWithLongLong(ctx, 0);
 }
 
 int pmSmembersCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
