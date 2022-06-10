@@ -2,7 +2,7 @@
 
 [summary]: summary
 
-4Paradigm's coding convention apply to C/CPP, Java, Scala, Python, Yaml, Json, Shell Script.
+Coding convention apply to C/CPP, Java, Scala, Python, Yaml, Json, Shell Script.
 
 # Motivation
 

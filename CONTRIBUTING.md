@@ -20,8 +20,8 @@ Here is the general contribution workflow:
 - Fork the PMedis repository into your personal space
 - Create a branch from where you want to base your code (usually it is the main branch)
 - Make commits of your code and test cases, make sure:
-  - your coding style follows our [code convention](https://github.com/memark-io/pmedis/doc/style-guide/code-convention.md)
-  - the commit messages follow our [commit convention](https://github.com/memark-io/pmedis/doc/style-guide/commit-convention.md)
+  - your coding style follows our [code convention](https://github.com/memark-io/pmedis/blob/main/doc/style-guide/code-convention.md)
+  - the commit messages follow our [commit convention](https://github.com/memark-io/pmedis/blob/main/doc/style-guide/commit-convention.md)
 
 - Push your commits to your forked repository
 - Submit a pull request to merge from your branch to the PMedis's main branch
@@ -36,7 +36,7 @@ You may find us from the following channels for any help about contribution
 
 ## Contribution Opportunities
 
-If you just would like to begin your journey to contribute to PMedis community, the issues with the label of `good first issue` is certainly a good start for you. [Please visit here for this issue list](https://github.com/4paradigm/OpenMLDB/issues).
+If you just would like to begin your journey to contribute to PMedis community, the issues with the label of `good first issue` is certainly a good start for you. [Please visit here for this issue list](https://github.com/memark-io/pmedis/issues).
 
 
 ## Contributors

@@ -32,7 +32,7 @@ rule 1 and 2 is enforced.
 
 Follow the issue template defined in each project, which should at least have
 
-- bug report tempate: e.g [bug report](https://github.com/4paradigm/fedb/blob/main/.github/ISSUE_TEMPLATE/bug_report.md)
+- bug report tempate: e.g [bug report](https://github.com/memark-io/pmedis/blob/main/.github/ISSUE_TEMPLATE/bug_report.md)
 - feature request template
 
 ## Pull Request
@@ -43,7 +43,7 @@ Follow the issue template defined in each project, which should at least have
    - `merge`, `squash merge` and `rebase merge` are all allowed.
    - maintainer should decide the right action, not mess up the commit tree.
 2. PR Template
-   - A Pull Request Template like [PR template](https://github.com/4paradigm/fedb/blob/main/.github/pull_request_template.md) should provided.
+   - A Pull Request Template like [PR template](https://github.com/memark-io/pmedis/blob/main/.github/pull_request_template.md) should provided.
 3. Conditions to suffice before merge
    - reach pre-defined approval number
    - CI all pass
