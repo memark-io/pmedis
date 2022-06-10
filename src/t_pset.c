@@ -336,9 +336,41 @@ int pmSmembersCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
 
 int pmSmismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                         int argc) {
-  // if (argc !=3) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  size_t key_len;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+
+  for (int i = 2; i < argc; ++i) {
+    if (NULL == iter) {
+      RedisModule_ReplyWithLongLong(ctx, 0);
+      continue;
+    }
+    bool isfounded = false;
+    KVDKHashIteratorSeekToFirst(iter);
+    while (KVDKHashIteratorIsValid(iter)) {
+      char* field;
+      size_t field_len, target_field_len;
+      KVDKHashIteratorGetKey(iter, &field, &field_len);
+      const char* target_field_str =
+          RedisModule_StringPtrLen(argv[i], &target_field_len);
+      if ((target_field_len == field_len) &&
+          (0 == memcmp(field, target_field_str, target_field_len))) {
+        RedisModule_ReplyWithLongLong(ctx, 1);
+        isfounded = true;
+        break;
+      }
+      KVDKHashIteratorNext(iter);
+    }
+    if (false == isfounded) {
+      RedisModule_ReplyWithLongLong(ctx, 0);
+    }
+  }
+  KVDKHashIteratorDestroy(iter);
+  RedisModule_ReplySetArrayLength(ctx, argc - 2);
   return REDISMODULE_OK;
 }
 
