@@ -192,7 +192,10 @@ int pmRpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (RedisModule_StringToLongLong(argv[2], &count) != REDISMODULE_OK) {
       return RedisModule_ReplyWithNull(ctx);
     }
-    if (count <= 0) return RedisModule_ReplyWithNull(ctx);
+    if (count < 0)
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is out of range, must be positive");
+    if (count == 0) return RedisModule_ReplyWithNull(ctx);
     if (count > list_sz) count = list_sz;
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
     for (int i = 0; i < count; i++) {
@@ -232,7 +235,10 @@ int pmLpopCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (RedisModule_StringToLongLong(argv[2], &count) != REDISMODULE_OK) {
       return RedisModule_ReplyWithNull(ctx);
     }
-    if (count <= 0) return RedisModule_ReplyWithNull(ctx);
+    if (count < 0)
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is out of range, must be positive");
+    if (count == 0) return RedisModule_ReplyWithNull(ctx);
     if (count > list_sz) count = list_sz;
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
     for (int i = 0; i < count; i++) {
@@ -405,6 +411,7 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   if (end < 0) end = list_sz + end;
   if ((start >= list_sz) || (end < 0) || (start > end)) {
+    // clear the whole list
     KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
     if (iter == NULL) {
       return RedisModule_ReplyWithError(ctx,
@@ -421,6 +428,7 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     KVDKListIteratorDestroy(iter);
     return RedisModule_ReplyWithSimpleString(ctx, "OK");
   }
+  // When it is normal situation, doing real trim
   KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
   if (iter == NULL) {
     return RedisModule_ReplyWithError(ctx,
