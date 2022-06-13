@@ -572,6 +572,7 @@ int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
  * Command would either return the bulk string, error or nil.
  */
 int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 2 || argc > 4) return RedisModule_WrongArity(ctx);
   int unit = UNIT_SECONDS;
   int flags = OBJ_NO_FLAGS;
   long long milliseconds = LLONG_MAX;
@@ -708,12 +709,12 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     // condition 1 NX set, but key exists --> then err
     if (flags & OBJ_SET_NX && s == Ok) {
       free(ori_val_str);
-      return RedisModule_ReplyWithError(ctx, "Err! Set NX but key exists");
+      return RedisModule_ReplyWithNull(ctx);
     }
     // condition 2 XX set, but key not exists --> then err
     if (flags & OBJ_SET_XX && s == NotFound) {
       free(ori_val_str);
-      return RedisModule_ReplyWithError(ctx, "Err! Set XX but key not exists");
+      return RedisModule_ReplyWithNull(ctx);
     }
   }
 
