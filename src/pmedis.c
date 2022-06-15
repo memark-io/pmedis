@@ -286,8 +286,8 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   if (RedisModule_CreateCommand(ctx, "pm.smismember", pmSmismemberCommand,
                                 "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.smovemember", pmSmoveCommand,
-                                "write fast", 1, 2, 1) == REDISMODULE_ERR)
+  if (RedisModule_CreateCommand(ctx, "pm.smove", pmSmoveCommand, "write fast",
+                                1, 2, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.spop", pmSpopCommand, "readonly fast",
                                 1, 1, 1) == REDISMODULE_ERR)

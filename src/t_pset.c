@@ -114,10 +114,10 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   // create an temp zset
   struct timeval curTime;
   gettimeofday(&curTime, NULL);
-  RedisModuleString* dstset_str =
+  RedisModuleString* dstset_rstr =
       RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
   RedisModuleKey* dstset = RedisModule_OpenKey(
-      ctx, dstset_str, REDISMODULE_READ | REDISMODULE_WRITE);
+      ctx, dstset_rstr, REDISMODULE_READ | REDISMODULE_WRITE);
 
   if (op == SET_OP_UNION) {
     /* For union, just add all element of every set to temp dstset*/
@@ -129,15 +129,15 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       KVDKHashIteratorSeekToFirst(iter);
       double score = 0;
       while (KVDKHashIteratorIsValid(iter)) {
-        char* field;
+        char* field_str;
         size_t field_len;
-        KVDKHashIteratorGetKey(iter, &field, &field_len);
-        RedisModuleString* field_str =
-            RedisModule_CreateString(ctx, field, field_len);
+        KVDKHashIteratorGetKey(iter, &field_str, &field_len);
+        RedisModuleString* field_rstr =
+            RedisModule_CreateString(ctx, field_str, field_len);
         int flags = REDISMODULE_ZADD_NX;
-        RedisModule_ZsetAdd(dstset, score, field_str, &flags);
-        RedisModule_FreeString(ctx, field_str);
-        free(field);
+        RedisModule_ZsetAdd(dstset, score, field_rstr, &flags);
+        RedisModule_FreeString(ctx, field_rstr);
+        free(field_str);
         ++score;
         KVDKHashIteratorNext(iter);
       }
@@ -162,14 +162,14 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       KVDKHashIteratorSeekToFirst(iter);
       double score = 0;
       while (KVDKHashIteratorIsValid(iter)) {
-        char* field;
+        char* field_str;
         size_t field_len;
-        KVDKHashIteratorGetKey(iter, &field, &field_len);
-        RedisModuleString* field_str =
-            RedisModule_CreateString(ctx, field, field_len);
+        KVDKHashIteratorGetKey(iter, &field_str, &field_len);
+        RedisModuleString* field_rstr =
+            RedisModule_CreateString(ctx, field_str, field_len);
         if (0 == j) {
           int flags = REDISMODULE_ZADD_NX;
-          int res = RedisModule_ZsetAdd(dstset, score, field_str, &flags);
+          int res = RedisModule_ZsetAdd(dstset, score, field_rstr, &flags);
           if ((flags & REDISMODULE_ZADD_ADDED) && (res == REDISMODULE_OK)) {
             ++cardinality;
           }
@@ -177,12 +177,12 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
         } else {
           int deleted;
           if (REDISMODULE_OK ==
-              RedisModule_ZsetRem(dstset, field_str, &deleted)) {
+              RedisModule_ZsetRem(dstset, field_rstr, &deleted)) {
             --cardinality;
           }
         }
-        RedisModule_FreeString(ctx, field_str);
-        free(field);
+        RedisModule_FreeString(ctx, field_rstr);
+        free(field_str);
         /* Exit if result set is empty as any additional removal
          * of elements will have no effect. */
         if (cardinality == 0) break;
@@ -226,7 +226,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
 
   RedisModule_CloseKey(dstset);
   RedisModule_DeleteKey(dstset);
-  RedisModule_FreeString(ctx, dstset_str);
+  RedisModule_FreeString(ctx, dstset_rstr);
 
   if (!dstkey) {
     RedisModule_ReplySetArrayLength(ctx, dst_count);
@@ -255,19 +255,187 @@ int pmSdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                                     SET_OP_DIFF);
 }
 
-int pmSinterCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  // if (argc !=2) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
+int pmSinterGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                           int setnum, const char* dstkey, size_t dst_len) {
+  KVDKHashIterator** iter_sets =
+      (KVDKHashIterator**)RedisModule_Alloc(sizeof(KVDKHashIterator*) * setnum);
+  size_t key_len;
+  KVDKStatus s;
+  int j, cardinality = 0;
+  int empty = 0;
+  int min_pos = 0;
+  size_t min_hash_sz = SIZE_MAX;
+  RedisModuleKey* dstset;
+  const char* key_str = NULL;
+  for (j = 0; j < setnum; ++j) {
+    key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+    iter_sets[j] = KVDKHashIteratorCreate(engine, key_str, key_len);
+    if (NULL == iter_sets[j]) {
+      ++empty;
+      break;
+    }
+
+    size_t hash_sz;
+    KVDKStatus s = KVDKHashLength(engine, key_str, key_len, &hash_sz);
+    assert(s == Ok);
+    if (hash_sz < min_hash_sz) {
+      min_hash_sz = hash_sz;
+      min_pos = j;
+    }
+  }
+
+  /* Return empty if there is an empty set */
+  if (empty > 0) {
+    if (dstkey) {
+      // TODO: delete key no matter what kind of type
+      // TODO: wait for KVDK for type detect type function
+      s = KVDKHashDestroy(engine, dstkey, dst_len);
+      s = KVDKHashCreate(engine, dstkey, dst_len);
+      return RedisModule_ReplyWithLongLong(ctx, 0);
+    } else {
+      return RedisModule_ReplyWithEmptyArray(ctx);
+    }
+  }
+
+  /* create a temp zset to store the result if dstkey is setted. */
+  if (dstkey) {
+    // create an temp result zset
+    struct timeval curTime;
+    gettimeofday(&curTime, NULL);
+    RedisModuleString* dstset_rstr =
+        RedisModule_CreateStringFromLongLong(ctx, (long long)(curTime.tv_usec));
+    dstset = RedisModule_OpenKey(ctx, dstset_rstr,
+                                 REDISMODULE_READ | REDISMODULE_WRITE);
+    RedisModule_FreeString(ctx, dstset_rstr);
+  } else {
+    RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+  }
+
+  /* Iterate all the elements of the first (smallest) set, and test
+   * the element against all the other sets, if at least one set does
+   * not include the element it is discarded */
+  KVDKHashIterator* min_iter = iter_sets[min_pos];
+  KVDKHashIteratorSeekToFirst(min_iter);
+  bool is_founded = false;
+  double score = 0;
+  while (KVDKHashIteratorIsValid(min_iter)) {
+    char* target_field_str = NULL;
+    size_t target_field_len = 0;
+    KVDKHashIteratorGetKey(min_iter, &target_field_str, &target_field_len);
+    RedisModuleString* target_field_rstr =
+        RedisModule_CreateString(ctx, target_field_str, target_field_len);
+    // for(int j=0; j<setnum; j++){
+    j = 0;
+    while (j < setnum) {
+      if (j == min_pos) {
+        ++j;
+        continue;
+      }
+      /* search key in the set */
+      is_founded = false;
+      KVDKHashIterator* iter = iter_sets[j];
+      KVDKHashIteratorSeekToFirst(iter);
+      while (KVDKHashIteratorIsValid(iter)) {
+        char* field_str;
+        size_t field_len;
+        KVDKHashIteratorGetKey(iter, &field_str, &field_len);
+        if ((target_field_len == field_len) &&
+            (0 == memcmp(field_str, target_field_str, target_field_len))) {
+          is_founded = true;
+          free(field_str);
+          break;
+        }
+        free(field_str);
+        KVDKHashIteratorNext(iter);
+      }
+      if (false == is_founded) {
+        break;
+      }
+      ++j;
+    }
+
+    /* take action when all sets contain the target member*/
+    if (j == setnum) {
+      ++score;
+      if (dstkey) {
+        /*
+         * insert target member to temp zset if dstkey is not null
+         * We can not modify dstkey directly before geting all the result
+         * elements since dstkey may involved as a set members Eg:
+         * PM.SINTERSTORE dstkey dstkey s1 s2
+         */
+        int flags = REDISMODULE_ZADD_NX;
+        int res = RedisModule_ZsetAdd(dstset, score, target_field_rstr, &flags);
+        assert(flags & REDISMODULE_ZADD_ADDED);
+        assert(res == REDISMODULE_OK);
+      } else {
+        RedisModule_ReplyWithString(ctx, target_field_rstr);
+      }
+    }
+    free(target_field_str);
+    RedisModule_FreeString(ctx, target_field_rstr);
+    KVDKHashIteratorNext(min_iter);
+  }
+  // KVDKHashIteratorDestroy(min_iter);
+  /* destroy iter */
+  for (j = 0; j < setnum; ++j) {
+    KVDKHashIteratorDestroy(iter_sets[j]);
+  }
+
+  /* Output the content */
+  if (!dstkey) {
+    RedisModule_ReplySetArrayLength(ctx, (long long)score);
+  } else {
+    /* copy data from temp zset to dstkey */
+    // TODO: delete key no matter what kind of type
+    // TODO: wait for KVDK for type detect function
+    // TODO: implemented by using  hash batch ops
+    s = KVDKHashDestroy(engine, dstkey, dst_len);
+    s = KVDKHashCreate(engine, dstkey, dst_len);
+    long long dst_count = 0;
+    RedisModule_ZsetFirstInScoreRange(dstset, REDISMODULE_NEGATIVE_INFINITE,
+                                      REDISMODULE_POSITIVE_INFINITE, 0, 0);
+    while (!RedisModule_ZsetRangeEndReached(dstset)) {
+      RedisModuleString* ele =
+          RedisModule_ZsetRangeCurrentElement(dstset, NULL);
+
+      size_t ele_len;
+      const char* ele_str = RedisModule_StringPtrLen(ele, &ele_len);
+      // TODO: implemented by using hash batch put
+      s = KVDKHashPut(engine, dstkey, dst_len, ele_str, ele_len, "0", 1);
+      if (s != Ok) {
+        return RedisModule_ReplyWithError(
+            ctx, "Err when insert elements to target set ");
+      }
+
+      RedisModule_FreeString(ctx, ele);
+      RedisModule_ZsetRangeNext(dstset);
+      ++dst_count;
+    }
+    RedisModule_ZsetRangeStop(dstset);
+    RedisModule_CloseKey(dstset);
+    RedisModule_DeleteKey(dstset);
+    assert(dst_count == (long long)score);
+    return RedisModule_ReplyWithLongLong(ctx, dst_count);
+  }
   return REDISMODULE_OK;
+}
+
+int pmSinterCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return pmSinterGenericCommand(ctx, argv + 1, argc - 1, NULL, 0);
 }
 
 int pmSinterstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
                          int argc) {
-  // if (argc !=2) {
-  //   return RedisModule_WrongArity(ctx);
-  // }
-  return REDISMODULE_OK;
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  size_t key_len;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  return pmSinterGenericCommand(ctx, argv + 2, argc - 2, key_str, key_len);
 }
 
 int pmSismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
@@ -292,11 +460,11 @@ int pmSismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   };
   KVDKHashIteratorSeekToFirst(iter);
   while (KVDKHashIteratorIsValid(iter)) {
-    char* field;
+    char* field_str;
     size_t field_len;
-    KVDKHashIteratorGetKey(iter, &field, &field_len);
+    KVDKHashIteratorGetKey(iter, &field_str, &field_len);
     if ((target_field_len == field_len) &&
-        (0 == memcmp(field, target_field_str, target_field_len))) {
+        (0 == memcmp(field_str, target_field_str, target_field_len))) {
       KVDKHashIteratorDestroy(iter);
       return RedisModule_ReplyWithLongLong(ctx, 1);
     }
@@ -320,12 +488,12 @@ int pmSmembersCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   KVDKHashIteratorSeekToFirst(iter);
   long long count = 0;
   while (KVDKHashIteratorIsValid(iter)) {
-    char* field;
+    char* field_str;
     size_t field_len;
-    KVDKHashIteratorGetKey(iter, &field, &field_len);
-    RedisModule_ReplyWithStringBuffer(ctx, field, field_len);
+    KVDKHashIteratorGetKey(iter, &field_str, &field_len);
+    RedisModule_ReplyWithStringBuffer(ctx, field_str, field_len);
     count++;
-    free(field);
+    free(field_str);
     KVDKHashIteratorNext(iter);
   }
   RedisModule_ReplySetArrayLength(ctx, count);
@@ -352,13 +520,13 @@ int pmSmismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     bool isfounded = false;
     KVDKHashIteratorSeekToFirst(iter);
     while (KVDKHashIteratorIsValid(iter)) {
-      char* field;
+      char* field_str;
       size_t field_len, target_field_len;
-      KVDKHashIteratorGetKey(iter, &field, &field_len);
+      KVDKHashIteratorGetKey(iter, &field_str, &field_len);
       const char* target_field_str =
           RedisModule_StringPtrLen(argv[i], &target_field_len);
       if ((target_field_len == field_len) &&
-          (0 == memcmp(field, target_field_str, target_field_len))) {
+          (0 == memcmp(field_str, target_field_str, target_field_len))) {
         RedisModule_ReplyWithLongLong(ctx, 1);
         isfounded = true;
         break;
@@ -410,17 +578,17 @@ int pmSpopCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   }
   for (KVDKHashIteratorSeekToFirst(iter); KVDKHashIteratorIsValid(iter);
        KVDKHashIteratorNext(iter)) {
-    char* field;
+    char* field_str;
     size_t field_len;
-    KVDKHashIteratorGetKey(iter, &field, &field_len);
-    s = KVDKHashDelete(engine, key_str, key_len, field, field_len);
+    KVDKHashIteratorGetKey(iter, &field_str, &field_len);
+    s = KVDKHashDelete(engine, key_str, key_len, field_str, field_len);
     if (s != Ok) {
       KVDKHashIteratorDestroy(iter);
-      free(field);
+      free(field_str);
       return RedisModule_ReplyWithError(ctx, "ERR KVDKHashDelete");
     }
-    RedisModule_ReplyWithStringBuffer(ctx, field, field_len);
-    free(field);
+    RedisModule_ReplyWithStringBuffer(ctx, field_str, field_len);
+    free(field_str);
     cnt++;
     if (maxCnt == 0) {
       KVDKHashIteratorDestroy(iter);
