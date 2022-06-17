@@ -553,7 +553,7 @@ int pmSmoveCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   const char* srcset_str = RedisModule_StringPtrLen(argv[1], &src_len);
   const char* dstset_str = RedisModule_StringPtrLen(argv[2], &dst_len);
   const char* ele_str = RedisModule_StringPtrLen(argv[3], &ele_len);
-  
+
   /* If the source key does not exist return 0 */
 
   return REDISMODULE_OK;
