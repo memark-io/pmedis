@@ -102,7 +102,7 @@ int pmZpopminCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   size_t key_len;
   const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   KVDKSortedIterator* iter =
-      KVDKKVDKSortedIteratorCreate(engine, key_str, key_len, NULL);
+      KVDKKVDKSortedIteratorCreate(engine, key_str, key_len, NULL, NULL);
   if (iter == NULL) {
     return RedisModule_ReplyWithEmptyArray(ctx);
   }
