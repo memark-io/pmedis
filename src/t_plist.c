@@ -125,7 +125,8 @@ int pmLinsertCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
 
   // add by cc
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   while (KVDKListIteratorIsValid(iter)) {
     KVDKListIteratorGetValue(iter, &val, &val_len);
     if ((val_len == pivot_len) && (0 == memcmp(pivot_str, val, val_len))) {
@@ -298,7 +299,8 @@ int pmLindexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
       ((idx < 0) && (list_sz < -idx))) {
     return RedisModule_ReplyWithNull(ctx);
   }
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   if (idx >= 0)
     KVDKListIteratorSeekPos(iter, (long)idx);
   else
@@ -327,14 +329,21 @@ int pmLsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (((idx >= 0) && (idx >= list_sz)) || ((idx < 0) && (list_sz < -idx))) {
     return RedisModule_ReplyWithError(ctx, "ERR index out of range");
   }
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
-  if (idx >= 0)
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
+  if (idx >= 0) {
     KVDKListIteratorSeekPos(iter, (long)idx);
-  else
+  } else {
     KVDKListIteratorSeekPos(iter, list_sz - (-idx));
+  }
   size_t val_len;
   const char *val = RedisModule_StringPtrLen(argv[3], &val_len);
-  s = KVDKListPut(engine, iter, val, val_len);
+  if (idx >= 0) {
+    KVDKListInsertAfter(engine, iter, val, val_len);
+  } else {
+    KVDKListInsertBefore(engine, iter, val, val_len);
+  }
+
   if (s == Ok) {
     RedisModule_ReplyWithSimpleString(ctx, "OK");
   } else {
@@ -367,7 +376,8 @@ int pmLrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (end < 0) end = list_sz + end;
   if ((start >= list_sz) || (end < 0) || (start > end))
     return RedisModule_ReplyWithEmptyArray(ctx);
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   KVDKListIteratorSeekPos(iter, (long)start);
   RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
   long i;
@@ -412,7 +422,8 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (end < 0) end = list_sz + end;
   if ((start >= list_sz) || (end < 0) || (start > end)) {
     // clear the whole list
-    KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+    KVDKListIterator *iter =
+        KVDKListIteratorCreate(engine, key_str, key_len, NULL);
     if (iter == NULL) {
       return RedisModule_ReplyWithError(ctx,
                                         "ERR KVDK cannot create ListIterator");
@@ -429,7 +440,8 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithSimpleString(ctx, "OK");
   }
   // When it is normal situation, doing real trim
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   if (iter == NULL) {
     return RedisModule_ReplyWithError(ctx,
                                       "ERR KVDK cannot create ListIterator");
@@ -510,7 +522,8 @@ int pmLposCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     direction = LIST_HEAD;
   }
   /* We return NULL or an empty array if there is no such key */
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   if (iter == NULL) {
     if (count != -1) {
       return RedisModule_ReplyWithEmptyArray(ctx);
@@ -588,7 +601,8 @@ int pmLremCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "Element too large");
   }
 
-  KVDKListIterator *iter = KVDKListIteratorCreate(engine, key_str, key_len);
+  KVDKListIterator *iter =
+      KVDKListIteratorCreate(engine, key_str, key_len, NULL);
   if (iter == NULL) {
     return RedisModule_ReplyWithLongLong(ctx, del_count);
   }
@@ -668,7 +682,8 @@ int pmLmoveCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (C_OK != getListPosition(ctx, argv[4], &whereto)) {
     return REDISMODULE_ERR;
   }
-  KVDKListIterator *l1_iter = KVDKListIteratorCreate(engine, l1_str, l1_len);
+  KVDKListIterator *l1_iter =
+      KVDKListIteratorCreate(engine, l1_str, l1_len, NULL);
   if (l1_iter == NULL) {
     return RedisModule_ReplyWithNull(ctx);
   }
@@ -688,13 +703,14 @@ int pmLmoveCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "ERR KVDKListErase failed");
   }
 
-  KVDKListIterator *l2_iter = KVDKListIteratorCreate(engine, l2_str, l2_len);
+  KVDKListIterator *l2_iter =
+      KVDKListIteratorCreate(engine, l2_str, l2_len, NULL);
   if (l2_iter == NULL) {
     s = KVDKListCreate(engine, l2_str, l2_len);
     if (s != Ok) {
       return RedisModule_ReplyWithError(ctx, "KVDKListCreate ERR");
     }
-    l2_iter = KVDKListIteratorCreate(engine, l2_str, l2_len);
+    l2_iter = KVDKListIteratorCreate(engine, l2_str, l2_len, NULL);
   }
   if (whereto == LIST_HEAD) {
     KVDKListIteratorSeekToFirst(l2_iter);

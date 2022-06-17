@@ -274,14 +274,14 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     }
   }
 
-  KVDKWriteBatch *kvdk_wb = KVDKWriteBatchCreate();
+  KVDKWriteBatch *kvdk_wb = KVDKWriteBatchCreate(engine);
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
     const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
-    KVDKWriteBatchPut(kvdk_wb, key_str, strlen(key_str), val_str,
-                      strlen(val_str));
+    KVDKWriteBatchStringPut(kvdk_wb, key_str, strlen(key_str), val_str,
+                            strlen(val_str));
   }
-  s = KVDKWrite(engine, kvdk_wb);
+  s = KVDKBatchWrite(engine, kvdk_wb);
   KVDKWriteBatchDestory(kvdk_wb);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);

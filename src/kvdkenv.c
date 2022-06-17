@@ -19,7 +19,8 @@
 const char *pmem_path = NULL;
 KVDKEngine *engine = NULL;
 KVDKConfigs *config = NULL;
-const char *enum_to_str[] = {FOREACH_ENUM(GENERATE_STRING)};
+// const char *enum_to_str[] = {FOREACH_ENUM(GENERATE_STRING)};
+const char *enum_to_str[] = {KVDK_STATUS(GENERATE_STRING)};
 const char *comp_name = "score_comp";
 
 int GetInt64Value(uint64_t *var, const char *value) {

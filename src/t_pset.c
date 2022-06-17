@@ -92,7 +92,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   for (j = 0; j < setnum; ++j) {
     const char* key_str = RedisModule_StringPtrLen(argv[j], &key_len);
     // const char* key_str = RedisModule_StringPtrLen(argv[j+start], &key_len);
-    iter_sets[j] = KVDKHashIteratorCreate(engine, key_str, key_len);
+    iter_sets[j] = KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
   }
 
   /* return empty array if the first set is empty */
@@ -269,7 +269,7 @@ int pmSinterGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   const char* key_str = NULL;
   for (j = 0; j < setnum; ++j) {
     key_str = RedisModule_StringPtrLen(argv[j], &key_len);
-    iter_sets[j] = KVDKHashIteratorCreate(engine, key_str, key_len);
+    iter_sets[j] = KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
     if (NULL == iter_sets[j]) {
       ++empty;
       break;
@@ -454,7 +454,8 @@ int pmSismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   // command: sismember mmmmmmm "3
   // return:  Invalid argument(s)
 
-  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  KVDKHashIterator* iter =
+      KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
   if (NULL == iter) {
     return RedisModule_ReplyWithLongLong(ctx, 0);
   };
@@ -480,7 +481,8 @@ int pmSmembersCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   }
   size_t key_len;
   const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
-  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  KVDKHashIterator* iter =
+      KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
   if (NULL == iter) {
     return RedisModule_ReplyWithEmptyArray(ctx);
   };
@@ -510,7 +512,8 @@ int pmSmismemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   size_t key_len;
   const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
-  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  KVDKHashIterator* iter =
+      KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
 
   for (int i = 2; i < argc; ++i) {
     if (NULL == iter) {
@@ -546,6 +549,13 @@ int pmSmoveCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   if (argc != 4) {
     return RedisModule_WrongArity(ctx);
   }
+  size_t src_len, dst_len, ele_len;
+  const char* srcset_str = RedisModule_StringPtrLen(argv[1], &src_len);
+  const char* dstset_str = RedisModule_StringPtrLen(argv[2], &dst_len);
+  const char* ele_str = RedisModule_StringPtrLen(argv[3], &ele_len);
+
+  /* If the source key does not exist return 0 */
+
   return REDISMODULE_OK;
 }
 
@@ -572,7 +582,8 @@ int pmSpopCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
       return RedisModule_ReplyWithEmptyArray(ctx);
   }
   size_t cnt = 0;
-  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  KVDKHashIterator* iter =
+      KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
   if (maxCnt > 0) {
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
   }
@@ -642,7 +653,8 @@ int pmSrandmemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     /* only return 1 random field */
     /* TODO: random strategy can be optimized for single random number */
     rand_pos = (rand()) % hash_sz;
-    KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+    KVDKHashIterator* iter =
+        KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
     KVDKHashIteratorSeekToFirst(iter);
     long long count = 0;
 
@@ -684,7 +696,8 @@ int pmSrandmemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     }
     // RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
     RedisModule_ReplyWithArray(ctx, count);
-    KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+    KVDKHashIterator* iter =
+        KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
     KVDKHashIteratorSeekToFirst(iter);
     for (size_t i = 0; i < rand_pos; ++i) {
       assert(KVDKHashIteratorIsValid(iter));
@@ -755,7 +768,8 @@ int pmSscanCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   if ((s != Ok) || (hash_sz == 0)) {
     return RedisModule_ReplyWithEmptyArray(ctx);
   }
-  KVDKHashIterator* iter = KVDKHashIteratorCreate(engine, key_str, key_len);
+  KVDKHashIterator* iter =
+      KVDKHashIteratorCreate(engine, key_str, key_len, NULL);
   RedisModule_ReplyWithArray(ctx, 2);
   RedisModule_ReplyWithSimpleString(ctx, "0");
   RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
