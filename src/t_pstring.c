@@ -738,6 +738,7 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
                  size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
+  *new_val = (char *)malloc(MAX_KVDK_STRING_SIZE);
   SetRangeArgs *args = (SetRangeArgs *)args_pointer;
   const char *val_str = args->val_str;
   size_t val_len = args->val_len;
