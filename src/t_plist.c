@@ -420,6 +420,8 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (start < 0) start = 0;
   }
   if (end < 0) end = list_sz + end;
+  if (end >= (long long)list_sz) end = list_sz - 1;
+  // avoid end > list_sz because kvdk api(05f720b) has problem for now
   if ((start >= list_sz) || (end < 0) || (start > end)) {
     // clear the whole list
     KVDKListIterator *iter =
