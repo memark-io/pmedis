@@ -57,20 +57,20 @@ All the commands supported by PMedis are listed in the table below. Most of them
 | PM.	HVALS	|	same as redis HVALS|
 | PM.	SADD	|	same as redis SADD|
 | PM.	SCARD	|	same as redis SCARD|
-| PM.	SDIFF	|	same as redis SDIFF| in progress
-| PM.	SDIFFSTORE	|	same as redis SDIFFSTORE| in progress
-| PM.	SINTER	|	same as redis SINTER| in progress
-| PM.	SINTERSTORE	|	same as redis SINTERSTORE| in progress
-| PM.	SISMEMBER	|	same as redis SISMEMBER| in progress
-| PM.	SMEMBERS	|	same as redis SMEMBERS| in progress
-| PM.	SMISMEMBER	|	same as redis SMISMEMBER| in progress
-| PM.	SMOVE	|	same as redis SMOVE| in progress
-| PM.	SPOP	|	same as redis SPOP| in progress
-| PM.	SRANDMEMBER	|	same as redis SRANDMEMBER| in progress
-| PM.	SREM	|	same as redis SREM| in progress
-| PM.	SSCAN	|	same as redis SSCAN| in progress
-| PM.	SUNION	|	same as redis SUNION| in progress
-| PM.	SUNIONSTORE	|	same as redis SUNIONSTORE| in progress
+| PM.	SDIFF	|	same as redis SDIFF|
+| PM.	SDIFFSTORE	|	same as redis SDIFFSTORE| currently the destination key must be a PM Set type
+| PM.	SINTER	|	same as redis SINTER|
+| PM.	SINTERSTORE	|	same as redis SINTERSTORE| currently the destination key must be a PM Set type
+| PM.	SISMEMBER	|	same as redis SISMEMBER|
+| PM.	SMEMBERS	|	same as redis SMEMBERS|
+| PM.	SMISMEMBER	|	same as redis SMISMEMBER|
+| PM.	SMOVE	|	same as redis SMOVE|
+| PM.	SPOP	|	same as redis SPOP|
+| PM.	SRANDMEMBER	|	same as redis SRANDMEMBER| 1. a negative count has the same behavior as a positive count; 2. random strategy can be further optimized;
+| PM.	SREM	|	same as redis SREM|
+| PM.	SSCAN	|	same as redis SSCAN| 1. not support cursor; 2. not support MATCH option
+| PM.	SUNION	|	same as redis SUNION|
+| PM.	SUNIONSTORE	|	same as redis SUNIONSTORE| currently the destination key must be a PM Set type
 | PM.	ZADD	|	same as redis ZADD| 
 | PM.	ZCARD	|	same as redis ZCARD| in progress
 | PM.	ZCOUNT	|	same as redis ZCOUNT| in progress
