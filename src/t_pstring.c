@@ -738,7 +738,6 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
                  size_t *new_val_len, void *args_pointer) {
   // assert(args_pointer);
-  *new_val = (char *)malloc(MAX_KVDK_STRING_SIZE);
   SetRangeArgs *args = (SetRangeArgs *)args_pointer;
   const char *val_str = args->val_str;
   size_t val_len = args->val_len;
@@ -747,6 +746,7 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
   /* Return existing string length when setting nothing */
   if (val_len == 0) {
     args->ll_strlen_after_result = old_val_len;
+    *new_val = NULL;  // Avoid crash
     args->err_no = RMW_SUCCESS;
     return KVDK_MODIFY_ABORT;
   }
@@ -756,6 +756,7 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
    * is 512 MB*/
   if (offset + val_len > MAX_KVDK_STRING_SIZE) {
     args->err_no = RMW_STRING_OVER_MAXSIZE;
+    *new_val = NULL;  // Avoid crash
     return KVDK_MODIFY_ABORT;
   }
 
