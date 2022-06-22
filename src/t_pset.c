@@ -229,6 +229,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
         ctx, "Err when insert elements to target set ");
   }
   RedisModule_CloseKey(dstset);
+  RedisModule_FreeString(ctx, dstset_rstr);
 
   if (!dstkey) {
     RedisModule_ReplySetArrayLength(ctx, dst_count);
@@ -415,8 +416,12 @@ int pmSinterGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       ++dst_count;
     }
     RedisModule_ZsetRangeStop(dstset);
+    s = RedisModule_DeleteKey(dstset);
+    if (s != Ok) {
+        return RedisModule_ReplyWithError(
+            ctx, "Err when insert elements to target set ");
+    }
     RedisModule_CloseKey(dstset);
-    RedisModule_DeleteKey(dstset);
     assert(dst_count == (long long)score);
     return RedisModule_ReplyWithLongLong(ctx, dst_count);
   }
