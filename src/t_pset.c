@@ -418,8 +418,8 @@ int pmSinterGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     RedisModule_ZsetRangeStop(dstset);
     s = RedisModule_DeleteKey(dstset);
     if (s != Ok) {
-        return RedisModule_ReplyWithError(
-            ctx, "Err when insert elements to target set ");
+      return RedisModule_ReplyWithError(
+          ctx, "Err when insert elements to target set ");
     }
     RedisModule_CloseKey(dstset);
     assert(dst_count == (long long)score);
