@@ -338,11 +338,7 @@ int pmLsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   size_t val_len;
   const char *val = RedisModule_StringPtrLen(argv[3], &val_len);
-  if (idx >= 0) {
-    KVDKListInsertAfter(engine, iter, val, val_len);
-  } else {
-    KVDKListInsertBefore(engine, iter, val, val_len);
-  }
+  s = KVDKListReplace(engine, iter, val, val_len);
 
   if (s == Ok) {
     RedisModule_ReplyWithSimpleString(ctx, "OK");
@@ -420,6 +416,9 @@ int pmLtrimCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (start < 0) start = 0;
   }
   if (end < 0) end = list_sz + end;
+  if (end >= (long long)list_sz) end = list_sz - 1;
+  /* avoid end > list_sz because kvdk SeekPos return NULL as both head
+  and tail node */
   if ((start >= list_sz) || (end < 0) || (start > end)) {
     // clear the whole list
     KVDKListIterator *iter =
