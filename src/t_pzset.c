@@ -86,6 +86,73 @@ int pmZaddCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   }
   return RedisModule_ReplyWithLongLong(ctx, created);
 }
+
+int pmZcardCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZcountCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZdiffCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZdiffstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                        int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZincrbyCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZinterCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZinterstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZlexcountCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                       int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZmscoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
 int pmZpopminCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   long long maxCnt = 1;
   if ((argc != 3) && (argc != 2)) {
@@ -156,5 +223,145 @@ int pmZpopminCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   return REDISMODULE_OK;
 }
 int pmZpopmaxCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrandmemberCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  if (argc < 2) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrangeCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrangebylexCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrangebyscoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                           int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrangestoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  if (argc < 5) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrankCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZremCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZremrangebylexCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                            int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZremrangebyrankCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                             int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZremrangebyscoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                              int argc) {
+  if (argc != 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrevrangeCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                       int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrevrangebylexCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                            int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrevrangebyscoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                              int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZrevrankCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZscanCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZscoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc != 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZunionCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
+  if (argc < 3) {
+    return RedisModule_WrongArity(ctx);
+  }
+  return REDISMODULE_OK;
+}
+
+int pmZunionstoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
+                         int argc) {
+  if (argc < 4) {
+    return RedisModule_WrongArity(ctx);
+  }
   return REDISMODULE_OK;
 }

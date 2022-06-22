@@ -248,10 +248,65 @@ extern int pmSunionstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 // ZSet Commands
 extern int pmZaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                          int argc);
-extern int pmZpopminCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+extern int pmZcardCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmZcountCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmZdiffCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmZdiffstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                               int argc);
+extern int pmZincrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                            int argc);
+extern int pmZinterCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmZinterstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmZlexcountCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                              int argc);
+extern int pmZmscoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                             int argc);
 extern int pmZpopmaxCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                             int argc);
+extern int pmZpopminCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                            int argc);
+extern int pmZrandmemberCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmZrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmZrangebylexCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmZrangebyscoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                  int argc);
+extern int pmZrangestoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+extern int pmZrankCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmZremCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
+extern int pmZremrangebylexCommand(RedisModuleCtx *ctx,
+                                   RedisModuleString **argv, int argc);
+extern int pmZremrangebyrankCommand(RedisModuleCtx *ctx,
+                                    RedisModuleString **argv, int argc);
+extern int pmZremrangebyscoreCommand(RedisModuleCtx *ctx,
+                                     RedisModuleString **argv, int argc);
+extern int pmZrevrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                              int argc);
+extern int pmZrevrangebylexCommand(RedisModuleCtx *ctx,
+                                   RedisModuleString **argv, int argc);
+extern int pmZrevrangebyscoreCommand(RedisModuleCtx *ctx,
+                                     RedisModuleString **argv, int argc);
+extern int pmZrevrankCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                             int argc);
+extern int pmZscanCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                          int argc);
+extern int pmZscoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmZunionCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmZunionstoreCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                                int argc);
+
 // Thread pool
 extern int thp_destroy(ThdPool_t *);
 extern ThdPool_t *thp_create(int, int, int);
