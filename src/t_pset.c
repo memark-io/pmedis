@@ -549,14 +549,55 @@ int pmSmoveCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   if (argc != 4) {
     return RedisModule_WrongArity(ctx);
   }
+  KVDKStatus s;
   size_t src_len, dst_len, ele_len;
   const char* srcset_str = RedisModule_StringPtrLen(argv[1], &src_len);
   const char* dstset_str = RedisModule_StringPtrLen(argv[2], &dst_len);
   const char* ele_str = RedisModule_StringPtrLen(argv[3], &ele_len);
 
   /* If the source key does not exist return 0 */
+  s = KVDKHashCreate(engine, srcset_str, src_len);
+  if (s == NotFound) {
+    return RedisModule_ReplyWithLongLong(ctx, 0);
+  }
+  /* If the source key has the wrong type,
+   * or the destination key is set and has the wrong type,
+   * return with an error. */
+  if (s == WrongType) {
+    return RedisModule_ReplyWithError(ctx, "ERR Sourse Set has Wrong Type");
+  }
+  assert(s == Existed);
+  s = KVDKHashCreate(engine, dstset_str, dst_len);
+  if (s == WrongType) {
+    return RedisModule_ReplyWithError(ctx,
+                                      "ERR Destination Set has Wrong Type");
+  }
 
-  return REDISMODULE_OK;
+  char* val_data;
+  size_t val_len;
+  s = KVDKHashGet(engine, srcset_str, src_len, ele_str, ele_len, &val_data,
+                  &val_len);
+  if (s == NotFound) {
+    return RedisModule_ReplyWithLongLong(ctx, 0);
+  }
+  /* If srcset and dstset are equal, PM.SMOVE just check whether ele_str exists
+   * in the set */
+  assert(s == Ok);
+  if (0 == memcmp(dstset_str, srcset_str, dst_len)) {
+    return RedisModule_ReplyWithLongLong(ctx, 1);
+  }
+
+  /* Remove the src set from the database when empty */
+  KVDKWriteBatch* kvdk_wb = KVDKWriteBatchCreate(engine);
+  KVDKWriteBatchHashDelete(kvdk_wb, srcset_str, src_len, ele_str, ele_len);
+  KVDKWriteBatchHashPut(kvdk_wb, dstset_str, dst_len, ele_str, ele_len, "0", 1);
+  s = KVDKBatchWrite(engine, kvdk_wb);
+  if (s == Ok) {
+    return RedisModule_ReplyWithLongLong(ctx, 1);
+    ;
+  } else {
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  }
 }
 
 int pmSpopCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
