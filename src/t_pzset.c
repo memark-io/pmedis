@@ -223,8 +223,71 @@ int pmZpopminCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   return REDISMODULE_OK;
 }
 int pmZpopmaxCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
-  if (argc < 2) {
+  long long maxCnt = 1;
+  if ((argc != 3) && (argc != 2)) {
     return RedisModule_WrongArity(ctx);
+  }
+  if (argc == 3) {
+    if ((RedisModule_StringToLongLong(argv[2], &maxCnt) != REDISMODULE_OK) ||
+        (maxCnt < 0)) {
+      return RedisModule_ReplyWithError(
+          ctx, "ERR value is out of range, must be positive");
+    }
+    if (maxCnt == 0) return RedisModule_ReplyWithEmptyArray(ctx);
+  }
+  size_t key_len;
+  const char* key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  KVDKSortedIterator* iter =
+      KVDKKVDKSortedIteratorCreate(engine, key_str, key_len, NULL, NULL);
+  if (iter == NULL) {
+    return RedisModule_ReplyWithEmptyArray(ctx);
+  }
+  size_t cnt = 0;
+  KVDKStatus s = Ok;
+  for (KVDKKVDKSortedIteratorSeekToLast(iter);
+       KVDKSortedIteratorValid(iter) && maxCnt > 0;
+       KVDKSortedIteratorNext(iter)) {
+    char* score_key;
+    char* string_key;
+    char* member;
+    size_t score_key_len;
+    size_t string_key_len;
+    size_t member_len;
+    int64_t score;
+    if (cnt == 0)
+      RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+    KVDKSortedIteratorKey(iter, &score_key, &score_key_len);
+    DecodeScoreKey(score_key, score_key_len, &member, &member_len, &score);
+    EncodeStringKey(key_str, key_len, member, member_len, &string_key,
+                    &string_key_len);
+    s = KVDKSortedDelete(engine, key_str, key_len, score_key, score_key_len);
+    if (s == Ok) {
+      s = KVDKDelete(engine, string_key, string_key_len);
+    }
+
+    if (s == Ok) {
+      RedisModule_ReplyWithStringBuffer(ctx, member, member_len);
+      RedisModuleString* score_str =
+          RedisModule_CreateStringFromLongLong(ctx, (long long)score);
+      RedisModule_ReplyWithString(ctx, score_str);
+      RedisModule_FreeString(ctx, score_str);
+      cnt++;
+    }
+
+    free(score_key);
+    free(string_key);
+    if (s != Ok || cnt == maxCnt) {
+      break;
+    }
+  }
+  KVDKSortedIteratorDestroy(engine, iter);
+  if (cnt == 0) {
+    return RedisModule_ReplyWithEmptyArray(ctx);
+  }
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(ctx, "ERR KVDKSorted");
+  } else {
+    RedisModule_ReplySetArrayLength(ctx, cnt * 2);
   }
   return REDISMODULE_OK;
 }
