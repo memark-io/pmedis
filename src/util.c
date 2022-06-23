@@ -47,6 +47,26 @@ KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx* ctx, rmw_err_msg err_no) {
   }
 }
 
+KVDKStatus DeleteKey(RedisModuleCtx* ctx, KVDKEngine* engine,
+                     const char* key_str, size_t key_len) {
+  // key must exist
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok) return s;
+  switch (type) {
+    case String:
+      return KVDKExpire(engine, key_str, key_len, 0);
+    case List:
+      return KVDKListDestroy(engine, key_str, key_len);
+    case HashSet:
+      return KVDKHashDestroy(engine, key_str, key_len);
+    case SortedSet:
+      return KVDKSortedDestroy(engine, key_str, key_len);
+    default:
+      return RedisModule_ReplyWithError(ctx, "Unknown Type");
+  }
+}
+
 char* safeStrcat(char* __restrict s1, size_t s1_size, const char* __restrict s2,
                  size_t s2_size) {
   size_t res_len = 1 + s1_size + s2_size;
