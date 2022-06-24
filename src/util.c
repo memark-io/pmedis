@@ -48,11 +48,8 @@ KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx* ctx, rmw_err_msg err_no) {
 }
 
 KVDKStatus DeleteKey(RedisModuleCtx* ctx, KVDKEngine* engine,
-                     const char* key_str, size_t key_len) {
-  // key must exist
-  KVDKValueType type;
-  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
-  if (s != Ok) return s;
+                     const char* key_str, size_t key_len, KVDKValueType type) {
+  // key must exist to avoid multiple calls of TypeOf()
   switch (type) {
     case String:
       return KVDKExpire(engine, key_str, key_len, 0);
