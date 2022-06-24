@@ -329,6 +329,10 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         safeStrcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  int64_t expire_time;
+  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
+  if (s == Ok && expire_time != INT64_MAX)
+    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKPut(engine, key_str, key_len, target_str, target_len, write_option);
   free(ori_val_str);  // free memory allocated by KVDKGet
   RedisModule_Free(target_str);
