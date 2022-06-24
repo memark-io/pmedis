@@ -126,12 +126,6 @@ int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "Err WrongType");
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  // Every Operation with KVDKWriteOptions will erase previous TTL
-  // Because new WriteOption instance always have default value kPersistTTL
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -155,10 +149,6 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "Err WrongType");
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -187,10 +177,6 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "Err WrongType");
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -219,10 +205,6 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "Err WrongType");
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -290,10 +272,6 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     return RedisModule_ReplyWithError(ctx, "Err WrongType");
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, IncrbyFloatFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -329,10 +307,6 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         safeStrcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
   }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKPut(engine, key_str, key_len, target_str, target_len, write_option);
   free(ori_val_str);  // free memory allocated by KVDKGet
   RedisModule_Free(target_str);
@@ -829,15 +803,7 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
     KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
   }
-  if (flags & OBJ_KEEPTTL) {
-    // KVDKPut will erase the previous TTL and persist a key by default
-    // set the expire time of previous key regardless of type
-    int64_t ttl_time;
-    s = KVDKGetTTL(engine, key_str, key_len, &ttl_time);
-    if (s == Ok && ttl_time != INT64_MAX) {
-      KVDKWriteOptionsSetTTLTime(write_option, ttl_time);
-    }
-  }
+  // todo: KEEPTTL option, wait for KVDK update
 
   if (flags & OBJ_SET_GET) {
     s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
@@ -952,10 +918,6 @@ int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   args.val_len = val_len;
   args.ll_offset = offset;
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  int64_t expire_time;
-  s = KVDKGetTTL(engine, key_str, key_len, &expire_time);
-  if (s == Ok && expire_time != INT64_MAX)
-    KVDKWriteOptionsSetTTLTime(write_option, expire_time);
   s = KVDKModify(engine, key_str, key_len, setRangeFunc, &args, free,
                  write_option);
   KVDKDestroyWriteOptions(write_option);
