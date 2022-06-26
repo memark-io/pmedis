@@ -56,6 +56,20 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   //  return REDISMODULE_ERR;
   // String Commands
   RedisModule_Log(ctx, "notice", "dummy cmd created");
+  if (RedisModule_CreateCommand(ctx, "pm.del", pmDelCommand, "write", 1, -1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.exists", pmExistsCommand,
+                                "readonly fast", 1, -1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.ttl", pmTTLCommand,
+                                "readonly fast random", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.pttl", pmPTTLCommand,
+                                "readonly fast random", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.incr", pmIncrCommand,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
