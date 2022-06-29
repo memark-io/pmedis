@@ -208,7 +208,7 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     RedisModuleString* ele = RedisModule_ZsetRangeCurrentElement(dstset, NULL);
     if (!dstkey) {
       RedisModule_ReplyWithString(ctx, ele);
-      RedisModule_FreeString(ctx, ele);
+      // RedisModule_FreeString(ctx, ele);
     } else {
       size_t ele_len;
       const char* ele_str = RedisModule_StringPtrLen(ele, &ele_len);
@@ -223,9 +223,12 @@ int pmSunionDiffGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
     ++dst_count;
   }
   RedisModule_ZsetRangeStop(dstset);
-
+  s = RedisModule_DeleteKey(dstset);
+  if (s != Ok) {
+    return RedisModule_ReplyWithError(
+        ctx, "Err when insert elements to target set ");
+  }
   RedisModule_CloseKey(dstset);
-  RedisModule_DeleteKey(dstset);
   RedisModule_FreeString(ctx, dstset_rstr);
 
   if (!dstkey) {
@@ -413,8 +416,12 @@ int pmSinterGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
       ++dst_count;
     }
     RedisModule_ZsetRangeStop(dstset);
+    s = RedisModule_DeleteKey(dstset);
+    if (s != Ok) {
+      return RedisModule_ReplyWithError(
+          ctx, "Err when insert elements to target set ");
+    }
     RedisModule_CloseKey(dstset);
-    RedisModule_DeleteKey(dstset);
     assert(dst_count == (long long)score);
     return RedisModule_ReplyWithLongLong(ctx, dst_count);
   }
