@@ -15,6 +15,63 @@
  */
 
 #include "pmedis.h"
+int pmDelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 2) return RedisModule_WrongArity(ctx);
+  long long del_num = 0;
+  int j;
+  KVDKValueType type;
+  for (j = 1; j < argc; ++j) {
+    size_t key_len;
+    const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+    if (Ok == KVDKTypeOf(engine, key_str, key_len, &type)) {
+      DeleteKey(ctx, engine, key_str, key_len, type);
+      del_num++;
+    }
+  }
+  return RedisModule_ReplyWithLongLong(ctx, del_num);
+}
+
+int pmExistsCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  if (argc < 2) return RedisModule_WrongArity(ctx);
+  long long exist_num = 0;
+  int j;
+  KVDKValueType type;
+  for (j = 1; j < argc; ++j) {
+    size_t key_len;
+    const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
+    if (Ok == KVDKTypeOf(engine, key_str, key_len, &type)) exist_num++;
+  }
+  return RedisModule_ReplyWithLongLong(ctx, exist_num);
+}
+
+int pmTTLGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc,
+                        bool milli) {
+  if (argc != 2) return RedisModule_WrongArity(ctx);
+  size_t key_len;
+  const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
+  int64_t ttl_time;
+  KVDKStatus s = KVDKGetTTL(engine, key_str, key_len, &ttl_time);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+  else if (s == NotFound)
+    return RedisModule_ReplyWithLongLong(ctx, -2);
+  else if (ttl_time == INT64_MAX)
+    return RedisModule_ReplyWithLongLong(ctx, -1);
+  else {
+    if (milli)
+      return RedisModule_ReplyWithLongLong(ctx, (long long)ttl_time);
+    else
+      return RedisModule_ReplyWithLongLong(ctx, (long long)(ttl_time / 1000));
+  }
+}
+
+int pmTTLCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return pmTTLGenericCommand(ctx, argv, argc, false);
+}
+
+int pmPTTLCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  return pmTTLGenericCommand(ctx, argv, argc, true);
+}
 
 int IncrbyFunc(const char *old_val, size_t old_val_len, char **new_val,
                size_t *new_val_len, void *args_pointer) {
@@ -61,9 +118,16 @@ int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
   args.ll_incr_by = 1;
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, KVDKStatusStrings[s]);
+  if (s == Ok && type != String) {
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
+  }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
-                            write_option);
+  s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                 write_option);
   KVDKDestroyWriteOptions(write_option);
 
   if (s != Ok)
@@ -77,9 +141,16 @@ int pmDecrCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   IncNArgs args;
   args.ll_incr_by = -1;
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, KVDKStatusStrings[s]);
+  if (s == Ok && type != String) {
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
+  }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
-                            write_option);
+  s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                 write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
@@ -98,9 +169,16 @@ int pmIncrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   IncNArgs args;
   args.ll_incr_by = incr;
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, KVDKStatusStrings[s]);
+  if (s == Ok && type != String) {
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
+  }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
-                            write_option);
+  s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                 write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
@@ -119,9 +197,16 @@ int pmDecrbyCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
   IncNArgs args;
   args.ll_incr_by = -decr;
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, KVDKStatusStrings[s]);
+  if (s == Ok && type != String) {
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
+  }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
-                            write_option);
+  s = KVDKModify(engine, key_str, key_len, IncrbyFunc, &args, free,
+                 write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
@@ -179,10 +264,16 @@ int pmIncrbyfloatCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 
   IncNArgs args;
   args.ld_incr_by = incr;
-
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s != Ok && s != NotFound)
+    return RedisModule_ReplyWithError(ctx, KVDKStatusStrings[s]);
+  if (s == Ok && type != String) {
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
+  }
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, IncrbyFloatFunc, &args,
-                            free, write_option);
+  s = KVDKModify(engine, key_str, key_len, IncrbyFloatFunc, &args, free,
+                 write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok)
     return RMW_ErrMsgPrinter(ctx, args.err_no);
@@ -203,18 +294,14 @@ int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
 
   if (s != Ok && s != NotFound) {
-    /* Something Err in KVDK */
+    /* Something Err in KVDK, This will include WrongType */
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   } else if (s == NotFound) {
     /* Create the key */
     target_len = append_val_len;
     target_str = (char *)append_val_str;
   } else {
-    /* Key exists, check type */
-    // TODO: require KVDK support input key, output: key-type
-    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
-    // Wrong Type");
-    /* Append the value */
+    /* key exists, append the value */
     target_len = append_val_len + ori_val_len;
     target_str =
         safeStrcat(ori_val_str, ori_val_len, append_val_str, append_val_len);
@@ -243,10 +330,6 @@ int pmStrlenCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     /* Key not exist*/
     str_len = 0;
   } else {
-    /* Key exists, check type */
-    // TODO: require KVDK support input key, output: key-type
-    // TODO: if(type != OBJ_STRING) return RedisModule_ReplyWithError(ctx,"ERR
-    // Wrong Type");
     /* Append the value */
     str_len = val_len;
   }
@@ -268,7 +351,7 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
     for (j = 1; j < argc; j += 2) {
       const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
       s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-      if (s == Ok) {
+      if (s == Ok || s == WrongType) {
         return RedisModule_ReplyWithLongLong(ctx, 0);
       }
     }
@@ -278,6 +361,16 @@ int pmMsetGenericCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
   for (j = 1; j < argc; j += 2) {
     const char *key_str = RedisModule_StringPtrLen(argv[j], &key_len);
     const char *val_str = RedisModule_StringPtrLen(argv[j + 1], &val_len);
+    // MSET never fail, it resets any key
+    if (!nx) {
+      KVDKValueType type;
+      s = KVDKTypeOf(engine, key_str, key_len, &type);
+      if (s == Ok && type != String) {
+        // We don't have to delete string first, slow performance
+        s = DeleteKey(ctx, engine, key_str, key_len, type);
+        if (s != Ok) return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+      }
+    }
     KVDKWriteBatchStringPut(kvdk_wb, key_str, strlen(key_str), val_str,
                             strlen(val_str));
   }
@@ -307,9 +400,9 @@ int pmMgetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     const char *key_str = RedisModule_StringPtrLen(argv[i], &key_len);
     char *val_str;
     KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-    if (s != Ok && s != NotFound) {
+    if (s != Ok && s != NotFound && s != WrongType) {
       return RedisModule_ReplyWithError(ctx, "MGET KVDKGet Return Err");
-    } else if (s == NotFound) {
+    } else if (s == NotFound || s == WrongType) {
       RedisModule_ReplyWithNull(ctx);
     } else {
       RedisModule_ReplyWithStringBuffer(ctx, val_str, val_len);
@@ -463,7 +556,7 @@ int pmGetGenericCommand(RedisModuleCtx *ctx, const char *key_str,
   size_t val_len;
   char *val_str;
   *s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-  if (*s != Ok && *s != NotFound) {
+  if (*s != Ok && *s != NotFound) {  // WrongType included
     return RedisModule_ReplyWithError(ctx, enum_to_str[*s]);
   } else if (NotFound == *s) {
     return RedisModule_ReplyWithNull(ctx);
@@ -493,7 +586,7 @@ int pmGetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithEmptyString(ctx);
   }
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &val_len, &val_str);
-  if (s != Ok && s != NotFound) {
+  if (s != Ok && s != NotFound) {  // WrongType included
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
   } else if (NotFound == s) {
     return RedisModule_ReplyWithEmptyString(ctx);
@@ -520,7 +613,7 @@ int pmGetsetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);
   KVDKStatus sGet, sSet;
-  pmGetGenericCommand(ctx, key_str, key_len, &sGet);
+  pmGetGenericCommand(ctx, key_str, key_len, &sGet);  // WrongType included
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   sSet = KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
   KVDKDestroyWriteOptions(write_option);
@@ -537,9 +630,9 @@ int pmGetdelCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   KVDKStatus sGet, sDel;
-  pmGetGenericCommand(ctx, key_str, key_len, &sGet);
+  pmGetGenericCommand(ctx, key_str, key_len, &sGet);  // WrongType included
   if (Ok == sGet) {
-    sDel = KVDKDelete(engine, key_str, key_len);
+    sDel = KVDKExpire(engine, key_str, key_len, 0);
     if (sDel != Ok) {
       return RedisModule_ReplyWithError(ctx, enum_to_str[sDel]);
     }
@@ -610,6 +703,7 @@ int pmGetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
   }
   s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
+  // WrongType included
   if (s != Ok && s != NotFound) {
     free(ori_val_str);
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
@@ -624,7 +718,7 @@ int pmGetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   size_t key_len;
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   KVDKStatus s;
-  return pmGetGenericCommand(ctx, key_str, key_len, &s);
+  return pmGetGenericCommand(ctx, key_str, key_len, &s);  // WrongType included
 }
 
 int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -640,10 +734,13 @@ int pmSetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return RedisModule_ReplyWithError(ctx, "invalid expire time");
   }
   milliseconds *= 1000;
+  // SETEX never fail
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s == Ok && type != String) DeleteKey(ctx, engine, key_str, key_len, type);
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
-  KVDKStatus s =
-      KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
+  s = KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
@@ -661,10 +758,13 @@ int pmPsetexCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (REDISMODULE_ERR == RedisModule_StringToLongLong(argv[2], &milliseconds)) {
     return RedisModule_ReplyWithError(ctx, "invalid expire time");
   }
+  // PSETEX never fail
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s == Ok && type != String) DeleteKey(ctx, engine, key_str, key_len, type);
   KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
   KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
-  KVDKStatus s =
-      KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
+  s = KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
   KVDKDestroyWriteOptions(write_option);
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
@@ -703,33 +803,46 @@ int pmSetCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
     KVDKWriteOptionsSetTTLTime(write_option, milliseconds);
   }
+  // todo: KEEPTTL option, wait for KVDK update
 
-  if ((flags & OBJ_SET_NX) || (flags & OBJ_SET_XX) || (flags & OBJ_SET_GET)) {
+  if (flags & OBJ_SET_GET) {
     s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
-    // condition 1 NX set, but key exists --> then err
+    // WrongType included
+    if (s != Ok && s != NotFound) {
+      return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
+    }
+    // NotFound is allowed but we need to set first
+  }
+
+  KVDKValueType type;
+  s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if ((flags & OBJ_SET_NX) || (flags & OBJ_SET_XX)) {
+    // SET never fail regarding to types unless GET option
+    // condition 1 NX set, but key exists --> then (nil)
     if (flags & OBJ_SET_NX && s == Ok) {
-      free(ori_val_str);
       return RedisModule_ReplyWithNull(ctx);
     }
-    // condition 2 XX set, but key not exists --> then err
+    // condition 2 XX set, but key not exists --> then (nil)
     if (flags & OBJ_SET_XX && s == NotFound) {
-      free(ori_val_str);
       return RedisModule_ReplyWithNull(ctx);
     }
   }
-
+  if (s == Ok && type != String) {
+    DeleteKey(ctx, engine, key_str, key_len, type);
+  }
   s = KVDKPut(engine, key_str, key_len, val_str, val_len, write_option);
   KVDKDestroyWriteOptions(write_option);
   if ((s == Ok) && (flags & OBJ_SET_GET)) {
-    RedisModule_ReplyWithStringBuffer(ctx, ori_val_str, ori_val_len);
-    free(ori_val_str);
-    return REDISMODULE_OK;
+    if (ori_val_str == NULL)
+      return RedisModule_ReplyWithNull(ctx);
+    else {
+      RedisModule_ReplyWithStringBuffer(ctx, ori_val_str, ori_val_len);
+      free(ori_val_str);
+      return REDISMODULE_OK;
+    }
   }
   if (s != Ok) {
     return RedisModule_ReplyWithError(ctx, enum_to_str[s]);
-  }
-  if ((flags & OBJ_SET_NX) || (flags & OBJ_SET_XX) || (flags & OBJ_SET_GET)) {
-    free(ori_val_str);
   }
   return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
@@ -782,14 +895,6 @@ int setRangeFunc(const char *old_val, size_t old_val_len, char **new_val,
   return KVDK_MODIFY_WRITE;
 }
 
-KVDKStatus setRange(const char *key_str, size_t key_len, SetRangeArgs *args) {
-  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
-  KVDKStatus s = KVDKModify(engine, key_str, key_len, setRangeFunc, args, free,
-                            write_option);
-  KVDKDestroyWriteOptions(write_option);
-  return s;
-}
-
 int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (argc != 4) return RedisModule_WrongArity(ctx);
 
@@ -803,12 +908,19 @@ int pmSetrangeCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (offset < 0) {
     return RedisModule_ReplyWithError(ctx, "ERR offset is out of range");
   }
+  KVDKValueType type;
+  KVDKStatus s = KVDKTypeOf(engine, key_str, key_len, &type);
+  if (s == Ok && type != String)
+    return RedisModule_ReplyWithError(ctx, "Err WrongType");
   const char *val_str = RedisModule_StringPtrLen(argv[3], &val_len);
   SetRangeArgs args;
   args.val_str = val_str;
   args.val_len = val_len;
   args.ll_offset = offset;
-  KVDKStatus s = setRange(key_str, key_len, &args);
+  KVDKWriteOptions *write_option = KVDKCreateWriteOptions();
+  s = KVDKModify(engine, key_str, key_len, setRangeFunc, &args, free,
+                 write_option);
+  KVDKDestroyWriteOptions(write_option);
   if (s == Abort && args.err_no != RMW_SUCCESS) {
     return RMW_ErrMsgPrinter(ctx, args.err_no);
   } else {
@@ -822,7 +934,7 @@ int pmSetnxCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   const char *key_str = RedisModule_StringPtrLen(argv[1], &key_len);
   char *ori_val_str;
   KVDKStatus s = KVDKGet(engine, key_str, key_len, &ori_val_len, &ori_val_str);
-  if (s == Ok) {
+  if (s == Ok || s == WrongType) {
     return RedisModule_ReplyWithLongLong(ctx, 0);
   }
   const char *val_str = RedisModule_StringPtrLen(argv[2], &val_len);

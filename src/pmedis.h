@@ -98,6 +98,14 @@ extern int HelloKeys_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
 extern int PmSleep_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 int argc);
 // String commands
+extern int pmDelCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                        int argc);
+extern int pmExistsCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                           int argc);
+extern int pmTTLCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                        int argc);
+extern int pmPTTLCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
+                         int argc);
 extern int pmAppendCommand(RedisModuleCtx *ctx, RedisModuleString **argv,
                            int argc);
 extern int pmIncrCommand(RedisModuleCtx *ctx, RedisModuleString **argv,

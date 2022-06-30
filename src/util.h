@@ -66,4 +66,6 @@ void EncodeStringKey(const char* collection, size_t collection_len,
 void DecodeScoreKey(char* score_key, size_t score_key_len, char** member,
                     size_t* member_len, int64_t* score);
 KVDKStatus RMW_ErrMsgPrinter(RedisModuleCtx* ctx, rmw_err_msg err_no);
+KVDKStatus DeleteKey(RedisModuleCtx* ctx, KVDKEngine* engine,
+                     const char* key_str, size_t key_len, KVDKValueType type);
 #endif
