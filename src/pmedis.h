@@ -31,6 +31,7 @@
 #include "redismodule.h"
 #include "util.h"
 #include "util_redis.h"
+#include "sds_redis.h"
 
 #define PMEM_FILE_SIZE 1 << 30
 #define HASH_BUCKET_NUM 1 << 27
@@ -74,6 +75,8 @@ typedef struct {
   long long ll_strlen_after_result;
   rmw_err_msg err_no;
 } SetRangeArgs;
+
+sds minstring, maxstring;
 
 extern int InitKVDK(RedisModuleCtx *ctx, RedisModuleString **argv, int argc);
 
