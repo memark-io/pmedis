@@ -435,7 +435,7 @@ void cleanup_zrange(zpm_range_type rangetype, zlexrangespec *lexrange){
 
 /* This command implements ZRANGE, ZREVRANGE. */
 KVDKStatus genericPMZrangebyrankCommand(RedisModuleCtx* ctx, const char* key_str, size_t key_len,
-    char * dst_str, size_t dst_len, long start, long end, int withscores, int reverse) {
+    char * dst_str, size_t dst_len, long start, long end, int withscores, int store, int reverse) {
 
   KVDKStatus s;
   size_t result_len;
@@ -466,14 +466,15 @@ KVDKStatus genericPMZrangebyrankCommand(RedisModuleCtx* ctx, const char* key_str
   result_len = rangelen;
 
   /* for commands except ZRANGESTORE */
-  if(dst_str == NULL){
+  if(store == 0){
+    assert((dst_str == NULL));
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
   }
 
   size_t skip_step = start;
   if(reverse){
     KVDKKVDKSortedIteratorSeekToLast(iter);
-    while(skip_step){
+    while(skip_step-- && KVDKSortedIteratorValid(iter)){
       KVDKSortedIteratorPrev(iter);
     }
   }else{
@@ -495,14 +496,12 @@ KVDKStatus genericPMZrangebyrankCommand(RedisModuleCtx* ctx, const char* key_str
     char* string_key;
     size_t member_len, string_key_len;
     int64_t score;
-
     DecodeScoreKey(score_key, score_key_len, &member, &member_len, &score);
-  
-
-    if(NULL != dst_str){
-      EncodeStringKey(key_str, key_len, member, member_len, &string_key,
+    if(store != 0){
+      assert(dst_str != NULL);
+      EncodeStringKey(dst_str, dst_len, member, member_len, &string_key,
                     &string_key_len);
-      s = KVDKSortedPut(engine, key_str, key_len, score_key, score_key_len, "",
+      s = KVDKSortedPut(engine, dst_str, dst_len, score_key, score_key_len, "",
                       0);
       assert(s == Ok);
       KVDKWriteOptions* write_option = KVDKCreateWriteOptions();
@@ -519,7 +518,9 @@ KVDKStatus genericPMZrangebyrankCommand(RedisModuleCtx* ctx, const char* key_str
     }
 
     free(score_key);
-    free(string_key);
+    if(store != 0){
+      free(string_key);
+    }
     if(reverse){
       KVDKSortedIteratorPrev(iter);
     }else{
@@ -528,12 +529,15 @@ KVDKStatus genericPMZrangebyrankCommand(RedisModuleCtx* ctx, const char* key_str
   }
   KVDKSortedIteratorDestroy(engine, iter);
 
-  if(NULL == dst_str){
+  if(store == 0){
+    assert(dst_str == NULL);
     if(withscores){
       RedisModule_ReplySetArrayLength(ctx, result_len * 2);
     }else{
       RedisModule_ReplySetArrayLength(ctx, result_len);
     }
+  }else{
+    RedisModule_ReplyWithLongLong(ctx, result_len);
   }
   return Ok;
 
@@ -659,7 +663,7 @@ int zPmRangeGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int ar
   }
 
   /* Step 3: Prepare reply or dst zset. */
-  if(!store){
+  if(store != 0){
     /* check exist */
     const char* c_dst_str = RedisModule_StringPtrLen(argv[argc_start-1], &dst_len);
     dst_str = (char*)c_dst_str;
@@ -686,7 +690,7 @@ int zPmRangeGenericCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int ar
     case ZRANGE_AUTO:
     case ZRANGE_RANK:
         s = genericPMZrangebyrankCommand(ctx, key_str, key_len, dst_str, dst_len, opt_start, opt_end,
-            opt_withscores, direction == ZRANGE_DIRECTION_REVERSE);
+            opt_withscores, store, direction == ZRANGE_DIRECTION_REVERSE);
         break;
 
     case ZRANGE_SCORE:
@@ -712,9 +716,7 @@ int pmZrangeCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
   if (argc < 4) {
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
   }
-
-  
-  return REDISMODULE_OK;
+  return zPmRangeGenericCommand(ctx, argv, argc, 1, 0, ZRANGE_AUTO, ZRANGE_DIRECTION_AUTO);
 }
 
 int pmZrangebylexCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
@@ -738,7 +740,7 @@ int pmZrangestoreCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   if (argc < 5) {
     return RedisModule_WrongArity(ctx);
   }
-  return REDISMODULE_OK;
+  return zPmRangeGenericCommand(ctx, argv, argc, 2, 1, ZRANGE_AUTO, ZRANGE_DIRECTION_AUTO);
 }
 
 int pmZrankCommand(RedisModuleCtx* ctx, RedisModuleString** argv, int argc) {
@@ -784,7 +786,7 @@ int pmZrevrangeCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
   if (argc < 4) {
     return RedisModule_WrongArity(ctx);
   }
-  return REDISMODULE_OK;
+  return zPmRangeGenericCommand(ctx, argv, argc, 1, 0, ZRANGE_RANK, ZRANGE_DIRECTION_REVERSE);
 }
 
 int pmZrevrangebylexCommand(RedisModuleCtx* ctx, RedisModuleString** argv,
