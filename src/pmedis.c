@@ -24,7 +24,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
 
   InitKVDK(ctx, argv, argc);
   srand(time(NULL));
-  
+
   minstring = sdsnew("minstring");
   maxstring = sdsnew("maxstring");
 

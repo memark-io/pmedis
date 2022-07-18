@@ -29,9 +29,9 @@
 
 #include "kvdk/engine.h"
 #include "redismodule.h"
+#include "sds_redis.h"
 #include "util.h"
 #include "util_redis.h"
-#include "sds_redis.h"
 
 #define PMEM_FILE_SIZE 1 << 30
 #define HASH_BUCKET_NUM 1 << 27
