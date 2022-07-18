@@ -25,6 +25,9 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
   InitKVDK(ctx, argv, argc);
   srand(time(NULL));
 
+  minstring = sdsnew("minstring");
+  maxstring = sdsnew("maxstring");
+
   thp = thp_create(8, 8, 100);
   if (thp == NULL) {
     RedisModule_Log(ctx, "warning", "Threadpool creation failed");
@@ -327,11 +330,97 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv,
                                 "write deny-oom fast", 1, 1,
                                 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
-  if (RedisModule_CreateCommand(ctx, "pm.zpopmin", pmZpopminCommand,
+  if (RedisModule_CreateCommand(ctx, "pm.zcard", pmZcardCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zcount", pmZcountCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zdiff", pmZdiffCommand, "readonly", 0,
+                                0, 0) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zdiffstore", pmZdiffstoreCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zincrby", pmZincrbyCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zinter", pmZinterCommand, "readonly",
+                                0, 0, 0) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zinterstore", pmZinterstoreCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zlexcount", pmZlexcountCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zmscore", pmZmscoreCommand,
                                 "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   if (RedisModule_CreateCommand(ctx, "pm.zpopmax", pmZpopmaxCommand,
+                                "write fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zpopmin", pmZpopminCommand,
+                                "write fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrandmember", pmZrandmemberCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrange", pmZrangeCommand, "readonly",
+                                1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrangebylex", pmZrangebylexCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrangebyscore", pmZrangebyscoreCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrangestore", pmZrangestoreCommand,
+                                "write deny-oom", 1, 2, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrank", pmZrankCommand,
                                 "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrem", pmZremCommand, "write fast", 1,
+                                1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zremrangebylex",
+                                pmZremrangebylexCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zremrangebyrank",
+                                pmZremrangebyrankCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zremrangebyscore",
+                                pmZremrangebyscoreCommand, "write", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrevrange", pmZrevrangeCommand,
+                                "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrevrangebylex",
+                                pmZrevrangebylexCommand, "readonly", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrevrangebyscore",
+                                pmZrevrangebylexCommand, "readonly", 1, 1,
+                                1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zrevrank", pmZrevrankCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zscan", pmZscanCommand,
+                                "readonly random", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zscore", pmZscoreCommand,
+                                "readonly fast", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zunion", pmZunionCommand, "readonly",
+                                0, 0, 0) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+  if (RedisModule_CreateCommand(ctx, "pm.zunionstore", pmZunionstoreCommand,
+                                "write deny-oom", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
   return REDISMODULE_OK;
 }
